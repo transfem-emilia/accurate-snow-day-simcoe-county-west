@@ -416,7 +416,7 @@
   </div>
 
   <script>
-    // Configuration
+    // --- CONFIG & THRESHOLDS (unchanged except small additions) ---
     const CONFIG = {
       zone: {
         name: 'West Zone',
@@ -428,43 +428,171 @@
         { name: 'Clearview', lat: 44.4000, lon: -80.0833 }
       ],
       openWeatherMapApiKey: '887768fdb608e6944b4945231ac88de7',
+      // ECCC region code for Barrie - Collingwood - Hillsdale
+      ecccRegionCode: 'onrm80'
     };
 
     const THRESHOLDS = {
       heavySnow12h: 15,
-      visibility: 0.4,
-      freezingRain: 0.1,
-      iceStorm: 10,
-      snowSquallRate: 15,
+      visibility: 0.4, // km
+      freezingRain: 0.1, // mm threshold consider freezing rain present
+      iceStorm: 10, // mm
+      snowSquallRate: 2 // cm/h threshold for squall detection (adjusted)
     };
 
+    // --- UTILS: logging helper ---
+    function logStep(...args) {
+      const ts = new Date().toLocaleString('en-CA', { timeZone: 'America/Toronto' });
+      console.log(`[${ts}]`, ...args);
+    }
+
+    // --- FETCH: Open-Meteo (adds current_weather) ---
     async function fetchOpenMeteo(lat, lon) {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation,rain,snowfall,visibility,weather_code,wind_speed_10m&daily=snowfall_sum&timezone=America/Toronto&forecast_days=3`;
-      
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
+        `&hourly=temperature_2m,precipitation,rain,snowfall,visibility,weathercode,wind_speed_10m&daily=snowfall_sum` +
+        `&current_weather=true&timezone=America/Toronto&forecast_days=3`;
+
+      logStep('fetchOpenMeteo -> requesting', { lat, lon, url });
       try {
         const response = await fetch(url);
         const data = await response.json();
+        logStep('fetchOpenMeteo -> received data', { name: `${lat},${lon}`, keys: Object.keys(data) });
         return data;
       } catch (error) {
-        console.error('Open-Meteo API error:', error);
+        console.error('fetchOpenMeteo ERROR:', error);
         return null;
       }
     }
 
+    // --- FETCH: OpenWeatherMap (unchanged but logs) ---
     async function fetchOpenWeatherMap(lat, lon, apiKey) {
       const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
-      
+      logStep('fetchOpenWeatherMap -> requesting', { lat, lon });
       try {
         const response = await fetch(url);
         const data = await response.json();
+        logStep('fetchOpenWeatherMap -> received', { listCount: data.list ? data.list.length : 0 });
         return data;
       } catch (error) {
-        console.error('OpenWeatherMap API error:', error);
+        console.error('fetchOpenWeatherMap ERROR:', error);
         return null;
       }
     }
 
-    function analyzeOpenMeteoData(data, startHour, endHour) {
+    // --- FETCH: ECCC alerts via region RSS/ATOM (weather.gc.ca) ---
+    async function fetchECCCAlerts(regionCode) {
+      // Region RSS filename pattern (English)
+      const url = `https://weather.gc.ca/rss/battleboard/${regionCode}_e.xml`;
+      logStep('fetchECCCAlerts -> requesting', url);
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          logStep('fetchECCCAlerts -> non-OK response', response.status);
+          return { success: false, items: [], rawStatus: response.status };
+        }
+        const text = await response.text();
+        // Parse XML
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(text, 'application/xml');
+        // Try atom <entry> then fallback to RSS <item>
+        const entries = Array.from(xml.querySelectorAll('entry, item')).map(node => {
+          const titleNode = node.querySelector('title');
+          const summaryNode = node.querySelector('summary') || node.querySelector('description');
+          const updatedNode = node.querySelector('updated') || node.querySelector('pubDate');
+          return {
+            title: titleNode ? titleNode.textContent.trim() : '(no title)',
+            summary: summaryNode ? summaryNode.textContent.trim() : '',
+            updated: updatedNode ? updatedNode.textContent.trim() : ''
+          };
+        });
+        logStep('fetchECCCAlerts -> parsed entries count', entries.length);
+        return { success: true, items: entries, raw: text };
+      } catch (error) {
+        console.error('fetchECCCAlerts ERROR:', error);
+        return { success: false, items: [], error: error.message };
+      }
+    }
+
+    // --- AGGREGATION: average multiple Open-Meteo hourly outputs element-wise ---
+    function averageOpenMeteoData(allMeteoData) {
+      logStep('averageOpenMeteoData -> start', { count: allMeteoData.length });
+
+      // filter out nulls
+      const valid = allMeteoData.filter(d => d && d.hourly);
+      if (valid.length === 0) {
+        logStep('averageOpenMeteoData -> no valid data');
+        return null;
+      }
+
+      // find minimum common length for hourly arrays
+      const reference = valid[0].hourly;
+      const keys = ['time', 'temperature_2m', 'precipitation', 'rain', 'snowfall', 'visibility', 'weathercode', 'wind_speed_10m'];
+      const minLen = Math.min(...valid.map(d => d.hourly.time.length));
+      logStep('averageOpenMeteoData -> minLen', minLen);
+
+      const averaged = { hourly: {}, daily: {} };
+
+      // average hourly numeric arrays element-wise
+      keys.forEach(key => {
+        const arr = [];
+        for (let i = 0; i < minLen; i++) {
+          if (key === 'time') {
+            arr.push(reference.time[i]);
+            continue;
+          }
+          let sum = 0, count = 0;
+          for (const d of valid) {
+            const val = d.hourly[key] && d.hourly[key][i];
+            if (typeof val === 'number') {
+              sum += val;
+              count++;
+            } else if (val !== undefined && val !== null && !isNaN(Number(val))) {
+              sum += Number(val);
+              count++;
+            }
+          }
+          arr.push(count > 0 ? sum / count : null);
+        }
+        averaged.hourly[key] = arr;
+      });
+
+      // handle daily: take average of same-day daily fields when available
+      if (valid[0].daily && valid[0].daily.snowfall_sum) {
+        const dailyLen = Math.min(...valid.map(d => (d.daily.snowfall_sum || []).length));
+        averaged.daily.snowfall_sum = [];
+        for (let i = 0; i < dailyLen; i++) {
+          let sum = 0, count = 0;
+          for (const d of valid) {
+            const v = d.daily.snowfall_sum && d.daily.snowfall_sum[i];
+            if (v !== undefined && v !== null) {
+              sum += v;
+              count++;
+            }
+          }
+          averaged.daily.snowfall_sum.push(count > 0 ? sum / count : null);
+        }
+      }
+
+      logStep('averageOpenMeteoData -> finished');
+      return averaged;
+    }
+
+    // --- HELPER: get current hour index (closest hour >= now) ---
+    function getCurrentHourIndex(timeArray) {
+      const now = new Date();
+      for (let i = 0; i < timeArray.length; i++) {
+        const t = new Date(timeArray[i]);
+        if (t >= now) {
+          return i;
+        }
+      }
+      // fallback to last index
+      return Math.max(0, timeArray.length - 1);
+    }
+
+    // --- ANALYSIS: open-meteo (slightly altered to use km for visibility and logging) ---
+    function analyzeOpenMeteoData(data, startIdx, hoursToCheck) {
+      logStep('analyzeOpenMeteoData -> starting', { startIdx, hoursToCheck });
       const hazards = {
         heavySnow: false,
         lowVisibility: false,
@@ -474,35 +602,47 @@
         details: []
       };
 
-      if (!data || !data.hourly) return hazards;
+      if (!data || !data.hourly) {
+        logStep('analyzeOpenMeteoData -> no hourly data');
+        return hazards;
+      }
 
       const hourly = data.hourly;
-      const hoursToCheck = Math.min(endHour - startHour, hourly.snowfall.length - startHour);
+      const len = hourly.snowfall.length;
+      const endIdx = Math.min(startIdx + hoursToCheck, len);
 
+      // total snow over the window
       let totalSnow = 0;
-      for (let i = startHour; i < startHour + hoursToCheck; i++) {
-        totalSnow += hourly.snowfall[i] || 0;
+      for (let i = startIdx; i < endIdx; i++) {
+        totalSnow += (hourly.snowfall[i] || 0);
       }
       hazards.snowfall12h = totalSnow;
+      logStep('analyzeOpenMeteoData -> snowfall12h', totalSnow);
 
       if (totalSnow >= THRESHOLDS.heavySnow12h) {
         hazards.heavySnow = true;
         hazards.details.push(`Heavy snow: ${totalSnow.toFixed(1)} cm expected`);
+        logStep('analyzeOpenMeteoData -> heavySnow triggered');
       }
 
-      const visibilitySlice = hourly.visibility.slice(startHour, startHour + hoursToCheck).filter(v => v !== null);
-      const minVisibility = visibilitySlice.length > 0 ? Math.min(...visibilitySlice) : 10000;
-      hazards.visibility = minVisibility / 1000;
-      
-      if (hazards.visibility <= THRESHOLDS.visibility) {
+      // visibility: min within window (open-meteo gives meters)
+      const visSlice = hourly.visibility.slice(startIdx, endIdx).filter(v => v !== null && v !== undefined);
+      const minVis = visSlice.length > 0 ? Math.min(...visSlice) : null;
+      hazards.visibility = (minVis !== null) ? (minVis / 1000) : null; // km
+      logStep('analyzeOpenMeteoData -> min visibility (km)', hazards.visibility);
+
+      if (hazards.visibility !== null && hazards.visibility <= THRESHOLDS.visibility) {
         hazards.lowVisibility = true;
         hazards.details.push(`Low visibility: ${hazards.visibility.toFixed(2)} km`);
+        logStep('analyzeOpenMeteoData -> lowVisibility triggered');
       }
 
-      for (let i = startHour; i < Math.min(startHour + hoursToCheck, hourly.snowfall.length); i++) {
-        if (hourly.snowfall[i] >= 2) {
+      // snow squall detection (any hourly snowfall >= threshold)
+      for (let i = startIdx; i < endIdx; i++) {
+        if ((hourly.snowfall[i] || 0) >= THRESHOLDS.snowSquallRate) {
           hazards.snowSquall = true;
-          hazards.details.push(`Potential snow squall: ${hourly.snowfall[i].toFixed(1)} cm/h`);
+          hazards.details.push(`Potential snow squall: ${(hourly.snowfall[i] || 0).toFixed(1)} cm/h`);
+          logStep('analyzeOpenMeteoData -> snowSquall triggered at index', i);
           break;
         }
       }
@@ -510,48 +650,52 @@
       return hazards;
     }
 
-    function analyzeOpenWeatherMapData(data, dayOffset) {
-      const hazards = {
+    // --- ANALYSIS: OpenWeatherMap (aggregate freezing rain / ice) ---
+    function analyzeOpenWeatherMapDataMultiple(allOwmData, dayOffset) {
+      logStep('analyzeOpenWeatherMapDataMultiple -> start', { count: allOwmData.length, dayOffset });
+      const combinedHazards = {
         freezingRain: false,
         iceStorm: false,
         details: []
       };
 
-      if (!data || !data.list) return hazards;
+      // For each OWM dataset, check the target day and accumulate rain when temp < 0
+      for (const data of allOwmData) {
+        if (!data || !data.list) continue;
+        const now = new Date();
+        const targetDate = new Date(now);
+        targetDate.setDate(targetDate.getDate() + dayOffset);
+        targetDate.setHours(0, 0, 0, 0);
+        const nextDay = new Date(targetDate);
+        nextDay.setDate(nextDay.getDate() + 1);
 
-      const now = new Date();
-      const targetDate = new Date(now);
-      targetDate.setDate(targetDate.getDate() + dayOffset);
-      targetDate.setHours(0, 0, 0, 0);
-
-      const nextDay = new Date(targetDate);
-      nextDay.setDate(nextDay.getDate() + 1);
-
-      for (let i = 0; i < data.list.length; i++) {
-        const item = data.list[i];
-        const itemDate = new Date(item.dt * 1000);
-        
-        if (itemDate >= targetDate && itemDate < nextDay) {
-          const temp = item.main.temp;
-          const rain = item.rain ? item.rain['3h'] || 0 : 0;
-          
-          if (temp < 0 && rain > 0) {
-            hazards.freezingRain = true;
-            
-            if (rain >= THRESHOLDS.iceStorm) {
-              hazards.iceStorm = true;
-              hazards.details.push(`Ice storm conditions: ${rain.toFixed(1)} mm freezing rain`);
-            } else {
-              hazards.details.push(`Freezing rain: ${rain.toFixed(1)} mm at ${temp.toFixed(1)}°C`);
+        for (const item of data.list) {
+          const itemDate = new Date(item.dt * 1000);
+          if (itemDate >= targetDate && itemDate < nextDay) {
+            const temp = item.main.temp;
+            const rain = item.rain ? (item.rain['3h'] || 0) : 0;
+            if (temp < 0 && rain > 0) {
+              combinedHazards.freezingRain = true;
+              combinedHazards.details.push(`Freezing rain: ${rain.toFixed(1)} mm at ${temp.toFixed(1)}°C (${itemDate.toLocaleString()})`);
+              if (rain >= THRESHOLDS.iceStorm) {
+                combinedHazards.iceStorm = true;
+                combinedHazards.details.push(`Ice storm threshold hit: ${rain.toFixed(1)} mm`);
+                logStep('analyzeOpenWeatherMapDataMultiple -> iceStorm triggered', { rain, temp, itemDate });
+                // iceStorm is severe, we can return early if desired
+              }
             }
           }
         }
       }
 
-      return hazards;
+      logStep('analyzeOpenWeatherMapDataMultiple -> finished', combinedHazards);
+      return combinedHazards;
     }
 
+    // --- PREDICTION: same logic but logs each scoring decision ---
     function predictCancellation(meteoHazards, owmHazards) {
+      logStep('predictCancellation -> start', { meteoHazards, owmHazards });
+
       const prediction = {
         cancelled: false,
         severity: 'none',
@@ -562,19 +706,21 @@
       let score = 0;
 
       if (owmHazards.iceStorm) {
+        logStep('predictCancellation -> iceStorm immediate cancel');
         prediction.cancelled = true;
         prediction.severity = 'extreme';
         prediction.reasons.push('ICE STORM WARNING - County-wide cancellation expected');
         prediction.confidence = 100;
-        return prediction;
+        return { ...prediction, hazards: meteoHazards };
       }
 
       if (owmHazards.freezingRain) {
         prediction.cancelled = true;
         prediction.severity = 'high';
         prediction.reasons.push('Freezing rain warning - Large-scale cancellations typical');
-        prediction.confidence = 95;
+        prediction.confidence = Math.max(prediction.confidence, 95);
         score += 50;
+        logStep('predictCancellation -> freezingRain increases score');
       }
 
       if (meteoHazards.heavySnow) {
@@ -601,11 +747,10 @@
         score += 35;
       }
 
-      if (meteoHazards.snowfall12h >= 10 && meteoHazards.snowfall12h < 15) {
+      if (meteoHazards.snowfall12h >= 10 && meteoHazards.snowfall12h < THRESHOLDS.heavySnow12h) {
         prediction.severity = 'moderate';
         prediction.reasons.push(`Moderate snow: ${meteoHazards.snowfall12h.toFixed(1)} cm expected`);
         score += 20;
-        
         if (score >= 25) {
           prediction.cancelled = true;
           prediction.confidence = 60;
@@ -621,62 +766,121 @@
         prediction.confidence = Math.max(prediction.confidence, 70);
       }
 
+      logStep('predictCancellation -> result', { prediction, score });
       return { ...prediction, hazards: meteoHazards };
     }
 
+    // --- TOP-LEVEL: getZonePredictions (averages + uses current hour) ---
     async function getZonePredictions() {
-      const predictions = { today: null, tomorrow: null };
+      logStep('getZonePredictions -> START');
 
-      // Fetch all data for the zone (averaging multiple locations)
-      const allData = await Promise.all(
-        CONFIG.coordinates.map(coord => Promise.all([
+      // fetch all data for each coordinate in parallel
+      const fetches = CONFIG.coordinates.map(async coord => {
+        logStep('getZonePredictions -> fetching for coord', coord.name);
+        const [meteo, owm] = await Promise.all([
           fetchOpenMeteo(coord.lat, coord.lon),
           fetchOpenWeatherMap(coord.lat, coord.lon, CONFIG.openWeatherMapApiKey)
-        ]))
-      );
+        ]);
+        return { name: coord.name, meteo, owm };
+      });
 
-      // Today's prediction (next 12 hours)
-      const todayMeteoHazards = analyzeOpenMeteoData(allData[0][0], 0, 12);
-      const todayOwmHazards = analyzeOpenWeatherMapData(allData[0][1], 0);
-      predictions.today = predictCancellation(todayMeteoHazards, todayOwmHazards);
+      const all = await Promise.all(fetches);
+      logStep('getZonePredictions -> fetched all locations', all.map(a => a.name));
 
-      // Tomorrow's prediction (24-36 hours from now)
-      const tomorrowMeteoHazards = analyzeOpenMeteoData(allData[0][0], 24, 36);
-      const tomorrowOwmHazards = analyzeOpenWeatherMapData(allData[0][1], 1);
-      predictions.tomorrow = predictCancellation(tomorrowMeteoHazards, tomorrowOwmHazards);
+      // Average Open-Meteo data across sites
+      const averagedMeteo = averageOpenMeteoData(all.map(a => a.meteo));
+      if (!averagedMeteo) {
+        logStep('getZonePredictions -> no averaged meteo, aborting');
+        return { today: null, tomorrow: null, alerts: null };
+      }
 
-      return predictions;
+      // Determine current hour index (use averaged.time)
+      const timeArray = averagedMeteo.hourly.time;
+      const currentIdx = getCurrentHourIndex(timeArray);
+      logStep('getZonePredictions -> currentIdx', currentIdx, 'time:', timeArray[currentIdx]);
+
+      // Today's window: next 12 hours from currentIdx
+      const hoursToday = 12;
+      const todayMeteoHazards = analyzeOpenMeteoData(averagedMeteo, currentIdx, hoursToday);
+
+      // Aggregate OWM hazards (freezing rain / ice) across sites for today and tomorrow
+      const allOwm = all.map(a => a.owm);
+      const todayOwmHazards = analyzeOpenWeatherMapDataMultiple(allOwm, 0);
+      const tomorrowOwmHazards = analyzeOpenWeatherMapDataMultiple(allOwm, 1);
+
+      // Predictions
+      const todayPrediction = predictCancellation(todayMeteoHazards, todayOwmHazards);
+
+      // Tomorrow: check 24-36 hours out. We'll use averagedMeteo indices for 24h ahead:
+      const tomorrowStart = Math.min(currentIdx + 24, averagedMeteo.hourly.time.length - 1);
+      const tomorrowMeteoHazards = analyzeOpenMeteoData(averagedMeteo, tomorrowStart, 12);
+      const tomorrowPrediction = predictCancellation(tomorrowMeteoHazards, tomorrowOwmHazards);
+
+      // Fetch ECCC alerts for the region and include in results
+      const eccc = await fetchECCCAlerts(CONFIG.ecccRegionCode);
+      logStep('getZonePredictions -> ECCC fetch completed');
+
+      logStep('getZonePredictions -> FINISHED');
+      return {
+        today: todayPrediction,
+        tomorrow: tomorrowPrediction,
+        alerts: eccc
+      };
     }
 
+    // --- HTML GENERATION: include alerts and console logs ---
     function generateHTML(predictions) {
       const timestamp = new Date().toLocaleString('en-CA', { timeZone: 'America/Toronto' });
+      logStep('generateHTML -> updating DOM', { timestamp });
+
       document.getElementById('timestamp').textContent = `Last Updated: ${timestamp}`;
 
-      const today = new Date().toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Toronto' });
-      const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Toronto' });
+      const todayLabel = new Date().toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Toronto' });
+      const tomorrowLabel = new Date(Date.now() + 86400000).toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Toronto' });
 
       let html = '';
 
+      // Alerts summary
+      html += `<div class="alerts-section">`;
+      if (predictions.alerts && predictions.alerts.success && predictions.alerts.items.length > 0) {
+        html += `<h3>⚠️ ECCC Alerts (Barrie - Collingwood - Hillsdale)</h3>`;
+        html += `<ul>`;
+        predictions.alerts.items.forEach(a => {
+          html += `<li><strong>${a.title}</strong><div>${a.summary}</div><small>${a.updated}</small></li>`;
+        });
+        html += `</ul>`;
+      } else if (predictions.alerts && predictions.alerts.success) {
+        html += `<h3>✅ ECCC Alerts</h3><div>No alerts in effect for Barrie - Collingwood - Hillsdale</div>`;
+      } else {
+        html += `<h3>⚠️ ECCC Alerts</h3><div>Unable to fetch alerts (status: ${predictions.alerts && predictions.alerts.rawStatus ? predictions.alerts.rawStatus : 'unknown'})</div>`;
+      }
+      html += `</div>`;
+
       // Today's prediction
       html += `<div class="day-section">`;
-      html += `<h2 class="day-header">📅 ${today} (Today)</h2>`;
+      html += `<h2 class="day-header">📅 ${todayLabel} (Today)</h2>`;
       html += generateZoneCard(predictions.today);
       html += `</div>`;
 
       // Tomorrow's prediction
       html += `<div class="day-section">`;
-      html += `<h2 class="day-header">📅 ${tomorrow} (Tomorrow)</h2>`;
+      html += `<h2 class="day-header">📅 ${tomorrowLabel} (Tomorrow)</h2>`;
       html += generateZoneCard(predictions.tomorrow);
       html += `</div>`;
 
       document.getElementById('predictions-container').innerHTML = html;
+      logStep('generateHTML -> DOM updated');
     }
 
     function generateZoneCard(pred) {
+      if (!pred) {
+        return `<div class="zone-card error"><div>Prediction not available</div></div>`;
+      }
+
       const statusClass = pred.cancelled ? 'cancelled' : 'not-cancelled';
       const statusText = pred.cancelled ? 'LIKELY CANCELLED' : 'RUNNING';
       const statusBadgeClass = pred.cancelled ? 'cancelled' : 'running';
-      
+
       let html = `
         <div class="zone-card ${statusClass}">
           <div class="card-header">
@@ -691,7 +895,7 @@
           </div>
       `;
 
-      if (pred.reasons.length > 0) {
+      if (pred.reasons && pred.reasons.length > 0) {
         html += `
           <div class="reasons">
             <div class="reasons-title">⚠️ Reasons:</div>
@@ -703,9 +907,9 @@
       html += `
           <div class="hazards">
             <strong>Forecast Conditions:</strong><br>
-            ${pred.hazards.snowfall12h > 0 ? `Snowfall: ${pred.hazards.snowfall12h.toFixed(1)} cm | ` : ''}
-            ${pred.hazards.visibility ? `Visibility: ${pred.hazards.visibility.toFixed(1)} km | ` : ''}
-            ${pred.reasons.length === 0 ? 'No significant weather hazards detected' : ''}
+            ${pred.hazards && pred.hazards.snowfall12h > 0 ? `Snowfall: ${pred.hazards.snowfall12h.toFixed(1)} cm | ` : ''}
+            ${pred.hazards && pred.hazards.visibility ? `Visibility: ${pred.hazards.visibility.toFixed(1)} km | ` : ''}
+            ${pred.reasons && pred.reasons.length === 0 ? 'No significant weather hazards detected' : ''}
           </div>
         </div>
       `;
@@ -713,11 +917,14 @@
       return html;
     }
 
+    // --- REFRESH: added console traces ---
     async function refreshData() {
       document.getElementById('predictions-container').innerHTML = '<div class="loading">Refreshing weather data...</div>';
-      
+      logStep('refreshData -> initiated');
+
       try {
         const predictions = await getZonePredictions();
+        logStep('refreshData -> predictions received', predictions);
         generateHTML(predictions);
       } catch (error) {
         console.error('Error fetching predictions:', error);
@@ -732,7 +939,11 @@
     }
 
     // Load data on page load
-    window.addEventListener('DOMContentLoaded', refreshData);
+    window.addEventListener('DOMContentLoaded', () => {
+      logStep('DOMContentLoaded -> starting refresh');
+      refreshData();
+    });
+
   </script>
 </body>
 </html>
