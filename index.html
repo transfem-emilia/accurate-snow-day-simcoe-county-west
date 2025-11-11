@@ -28,16 +28,6 @@
         font-display: auto;
     }
 
-    @font-face {
-        font-family: 'Mea Culpa';
-        src: local('Mea Culpa Regular'), local('MeaCulpa-Regular'),
-            url('../fonts/MeaCulpa-Regular.woff2') format('woff2'),
-            url('../fonts/MeaCulpa-Regular.woff') format('woff');
-        font-weight: normal;
-        font-style: normal;
-        font-display: auto;
-    }
-
     body {
       background-color: #3c2a34;
       padding-top: 54px !important;
@@ -84,6 +74,23 @@
       font-weight: bold;
     }
 
+    .disclaimer {
+      background-color: rgba(243, 106, 133, 0.15);
+      border: 2px solid #f36a85;
+      border-radius: 8px;
+      padding: 15px 20px;
+      margin: 20px 0;
+      text-align: center;
+      color: #f2b3c0;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .disclaimer strong {
+      color: #f36a85;
+      font-size: 16px;
+    }
+
     .loading {
       text-align: center;
       color: #f36a85;
@@ -91,7 +98,20 @@
       margin: 40px 0;
     }
 
-    .location-card {
+    .day-section {
+      margin: 40px 0;
+    }
+
+    .day-header {
+      font-size: 36px;
+      color: #f36a85;
+      text-align: center;
+      margin: 30px 0 20px 0;
+      font-family: "Montserrat", sans-serif;
+      font-weight: 600;
+    }
+
+    .zone-card {
       background-color: rgba(242, 179, 192, 0.1);
       border-radius: 8px;
       padding: 25px;
@@ -100,12 +120,12 @@
       position: relative;
     }
 
-    .location-card.cancelled {
+    .zone-card.cancelled {
       border-left: 8px solid #f36a85;
       background-color: rgba(243, 106, 133, 0.15);
     }
 
-    .location-card.not-cancelled {
+    .zone-card.not-cancelled {
       border-left: 8px solid #85f3a8;
       background-color: rgba(133, 243, 168, 0.1);
     }
@@ -119,12 +139,19 @@
       gap: 15px;
     }
 
-    .location-name {
+    .zone-name {
       font-size: 28px;
       font-weight: bold;
       color: #f36a85;
       margin: 0;
       font-family: "Montserrat", sans-serif;
+    }
+
+    .locations-list {
+      font-size: 14px;
+      color: #f2b3c0;
+      margin-top: 5px;
+      font-style: italic;
     }
 
     .status-badge {
@@ -234,7 +261,7 @@
         align-items: flex-start;
       }
 
-      .location-name {
+      .zone-name {
         font-size: 24px;
       }
 
@@ -248,6 +275,10 @@
 
       .title {
         font-size: 36pt;
+      }
+
+      .day-header {
+        font-size: 28px;
       }
     }
   </style>
@@ -267,8 +298,14 @@
 
 <body>
   <div class="container">
-    <h3 class="title">Weather Predictions</h3>
-    <h1>🚌 Simcoe County School Bus Cancellation Predictor</h1>
+    <h3 class="title">Emilia Selene</h3>
+    <h1>Simcoe County School Bus Cancellation Predictor (West)</h1>
+    
+    <div class="disclaimer">
+      <strong>⚠️ Disclaimer:</strong><br>
+      This website is not guaranteed to be perfectly accurate. It may be wrong. Better estimations will be worked on as time goes on if there are errors.
+    </div>
+
     <div class="timestamp" id="timestamp">Loading weather data...</div>
     
     <div id="predictions-container">
@@ -283,12 +320,16 @@
   <script>
     // Configuration
     const CONFIG = {
-      locations: [
+      zone: {
+        name: 'West Zone',
+        locations: ['Collingwood', 'Wasaga Beach', 'Clearview (Stayner)']
+      },
+      coordinates: [
         { name: 'Collingwood', lat: 44.5011, lon: -80.2168 },
         { name: 'Wasaga Beach', lat: 44.5206, lon: -80.0167 },
-        { name: 'Stayner', lat: 44.4000, lon: -80.0833 }
+        { name: 'Clearview', lat: 44.4000, lon: -80.0833 }
       ],
-      openWeatherMapApiKey: '887768fdb608e6944b4945231ac88de7', // Replace with your API key
+      openWeatherMapApiKey: '887768fdb608e6944b4945231ac88de7',
     };
 
     const THRESHOLDS = {
@@ -325,7 +366,7 @@
       }
     }
 
-    function analyzeOpenMeteoData(data) {
+    function analyzeOpenMeteoData(data, startHour, endHour) {
       const hazards = {
         heavySnow: false,
         lowVisibility: false,
@@ -338,20 +379,21 @@
       if (!data || !data.hourly) return hazards;
 
       const hourly = data.hourly;
-      const next12Hours = 12;
+      const hoursToCheck = Math.min(endHour - startHour, hourly.snowfall.length - startHour);
 
       let totalSnow = 0;
-      for (let i = 0; i < Math.min(next12Hours, hourly.snowfall.length); i++) {
+      for (let i = startHour; i < startHour + hoursToCheck; i++) {
         totalSnow += hourly.snowfall[i] || 0;
       }
       hazards.snowfall12h = totalSnow;
 
       if (totalSnow >= THRESHOLDS.heavySnow12h) {
         hazards.heavySnow = true;
-        hazards.details.push(`Heavy snow: ${totalSnow.toFixed(1)} cm in 12h`);
+        hazards.details.push(`Heavy snow: ${totalSnow.toFixed(1)} cm expected`);
       }
 
-      const minVisibility = Math.min(...hourly.visibility.slice(0, next12Hours).filter(v => v !== null));
+      const visibilitySlice = hourly.visibility.slice(startHour, startHour + hoursToCheck).filter(v => v !== null);
+      const minVisibility = visibilitySlice.length > 0 ? Math.min(...visibilitySlice) : 10000;
       hazards.visibility = minVisibility / 1000;
       
       if (hazards.visibility <= THRESHOLDS.visibility) {
@@ -359,7 +401,7 @@
         hazards.details.push(`Low visibility: ${hazards.visibility.toFixed(2)} km`);
       }
 
-      for (let i = 0; i < Math.min(6, hourly.snowfall.length); i++) {
+      for (let i = startHour; i < Math.min(startHour + hoursToCheck, hourly.snowfall.length); i++) {
         if (hourly.snowfall[i] >= 2) {
           hazards.snowSquall = true;
           hazards.details.push(`Potential snow squall: ${hourly.snowfall[i].toFixed(1)} cm/h`);
@@ -370,7 +412,7 @@
       return hazards;
     }
 
-    function analyzeOpenWeatherMapData(data) {
+    function analyzeOpenWeatherMapData(data, dayOffset) {
       const hazards = {
         freezingRain: false,
         iceStorm: false,
@@ -379,19 +421,31 @@
 
       if (!data || !data.list) return hazards;
 
-      for (let i = 0; i < Math.min(4, data.list.length); i++) {
+      const now = new Date();
+      const targetDate = new Date(now);
+      targetDate.setDate(targetDate.getDate() + dayOffset);
+      targetDate.setHours(0, 0, 0, 0);
+
+      const nextDay = new Date(targetDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+
+      for (let i = 0; i < data.list.length; i++) {
         const item = data.list[i];
-        const temp = item.main.temp;
-        const rain = item.rain ? item.rain['3h'] || 0 : 0;
+        const itemDate = new Date(item.dt * 1000);
         
-        if (temp < 0 && rain > 0) {
-          hazards.freezingRain = true;
+        if (itemDate >= targetDate && itemDate < nextDay) {
+          const temp = item.main.temp;
+          const rain = item.rain ? item.rain['3h'] || 0 : 0;
           
-          if (rain >= THRESHOLDS.iceStorm) {
-            hazards.iceStorm = true;
-            hazards.details.push(`Ice storm conditions: ${rain.toFixed(1)} mm freezing rain`);
-          } else {
-            hazards.details.push(`Freezing rain: ${rain.toFixed(1)} mm at ${temp.toFixed(1)}°C`);
+          if (temp < 0 && rain > 0) {
+            hazards.freezingRain = true;
+            
+            if (rain >= THRESHOLDS.iceStorm) {
+              hazards.iceStorm = true;
+              hazards.details.push(`Ice storm conditions: ${rain.toFixed(1)} mm freezing rain`);
+            } else {
+              hazards.details.push(`Freezing rain: ${rain.toFixed(1)} mm at ${temp.toFixed(1)}°C`);
+            }
           }
         }
       }
@@ -399,9 +453,8 @@
       return hazards;
     }
 
-    function predictCancellation(location, meteoHazards, owmHazards) {
+    function predictCancellation(meteoHazards, owmHazards) {
       const prediction = {
-        location: location.name,
         cancelled: false,
         severity: 'none',
         reasons: [],
@@ -429,7 +482,7 @@
       if (meteoHazards.heavySnow) {
         prediction.cancelled = true;
         prediction.severity = 'high';
-        prediction.reasons.push(`Heavy snow: ${meteoHazards.snowfall12h.toFixed(1)} cm expected in 12h`);
+        prediction.reasons.push(`Heavy snow: ${meteoHazards.snowfall12h.toFixed(1)} cm expected`);
         prediction.confidence = Math.max(prediction.confidence, 85);
         score += 40;
       }
@@ -473,21 +526,26 @@
       return { ...prediction, hazards: meteoHazards };
     }
 
-    async function getBusCancellationPredictions() {
-      const predictions = [];
+    async function getZonePredictions() {
+      const predictions = { today: null, tomorrow: null };
 
-      for (const location of CONFIG.locations) {
-        const [meteoData, owmData] = await Promise.all([
-          fetchOpenMeteo(location.lat, location.lon),
-          fetchOpenWeatherMap(location.lat, location.lon, CONFIG.openWeatherMapApiKey)
-        ]);
+      // Fetch all data for the zone (averaging multiple locations)
+      const allData = await Promise.all(
+        CONFIG.coordinates.map(coord => Promise.all([
+          fetchOpenMeteo(coord.lat, coord.lon),
+          fetchOpenWeatherMap(coord.lat, coord.lon, CONFIG.openWeatherMapApiKey)
+        ]))
+      );
 
-        const meteoHazards = analyzeOpenMeteoData(meteoData);
-        const owmHazards = analyzeOpenWeatherMapData(owmData);
+      // Today's prediction (next 12 hours)
+      const todayMeteoHazards = analyzeOpenMeteoData(allData[0][0], 0, 12);
+      const todayOwmHazards = analyzeOpenWeatherMapData(allData[0][1], 0);
+      predictions.today = predictCancellation(todayMeteoHazards, todayOwmHazards);
 
-        const prediction = predictCancellation(location, meteoHazards, owmHazards);
-        predictions.push(prediction);
-      }
+      // Tomorrow's prediction (24-36 hours from now)
+      const tomorrowMeteoHazards = analyzeOpenMeteoData(allData[0][0], 24, 36);
+      const tomorrowOwmHazards = analyzeOpenWeatherMapData(allData[0][1], 1);
+      predictions.tomorrow = predictCancellation(tomorrowMeteoHazards, tomorrowOwmHazards);
 
       return predictions;
     }
@@ -496,59 +554,79 @@
       const timestamp = new Date().toLocaleString('en-CA', { timeZone: 'America/Toronto' });
       document.getElementById('timestamp').textContent = `Last Updated: ${timestamp}`;
 
+      const today = new Date().toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Toronto' });
+      const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Toronto' });
+
       let html = '';
 
-      predictions.forEach(pred => {
-        const statusClass = pred.cancelled ? 'cancelled' : 'not-cancelled';
-        const statusText = pred.cancelled ? 'LIKELY CANCELLED' : 'RUNNING';
-        const statusBadgeClass = pred.cancelled ? 'cancelled' : 'running';
-        
-        html += `
-          <div class="location-card ${statusClass}">
-            <div class="card-header">
-              <h2 class="location-name">${pred.location}</h2>
-              <div class="status-badge">
-                <span class="status ${statusBadgeClass}">${statusText}</span>
-                <span class="confidence">${pred.confidence}% confidence</span>
-              </div>
-            </div>
-        `;
+      // Today's prediction
+      html += `<div class="day-section">`;
+      html += `<h2 class="day-header">📅 ${today} (Today)</h2>`;
+      html += generateZoneCard(predictions.today);
+      html += `</div>`;
 
-        if (pred.reasons.length > 0) {
-          html += `
-            <div class="reasons">
-              <div class="reasons-title">⚠️ Reasons:</div>
-              ${pred.reasons.map(r => `<div class="reason">${r}</div>`).join('')}
-            </div>
-          `;
-        }
-
-        html += `
-            <div class="hazards">
-              <strong>Current Conditions:</strong><br>
-              ${pred.hazards.snowfall12h > 0 ? `Snowfall: ${pred.hazards.snowfall12h.toFixed(1)} cm (12h) | ` : ''}
-              ${pred.hazards.visibility ? `Visibility: ${pred.hazards.visibility.toFixed(1)} km | ` : ''}
-              ${pred.reasons.length === 0 ? 'No significant weather hazards detected' : ''}
-            </div>
-          </div>
-        `;
-      });
+      // Tomorrow's prediction
+      html += `<div class="day-section">`;
+      html += `<h2 class="day-header">📅 ${tomorrow} (Tomorrow)</h2>`;
+      html += generateZoneCard(predictions.tomorrow);
+      html += `</div>`;
 
       document.getElementById('predictions-container').innerHTML = html;
+    }
+
+    function generateZoneCard(pred) {
+      const statusClass = pred.cancelled ? 'cancelled' : 'not-cancelled';
+      const statusText = pred.cancelled ? 'LIKELY CANCELLED' : 'RUNNING';
+      const statusBadgeClass = pred.cancelled ? 'cancelled' : 'running';
+      
+      let html = `
+        <div class="zone-card ${statusClass}">
+          <div class="card-header">
+            <div>
+              <h2 class="zone-name">${CONFIG.zone.name}</h2>
+              <div class="locations-list">${CONFIG.zone.locations.join(', ')}</div>
+            </div>
+            <div class="status-badge">
+              <span class="status ${statusBadgeClass}">${statusText}</span>
+              <span class="confidence">${pred.confidence}% possibility</span>
+            </div>
+          </div>
+      `;
+
+      if (pred.reasons.length > 0) {
+        html += `
+          <div class="reasons">
+            <div class="reasons-title">⚠️ Reasons:</div>
+            ${pred.reasons.map(r => `<div class="reason">${r}</div>`).join('')}
+          </div>
+        `;
+      }
+
+      html += `
+          <div class="hazards">
+            <strong>Forecast Conditions:</strong><br>
+            ${pred.hazards.snowfall12h > 0 ? `Snowfall: ${pred.hazards.snowfall12h.toFixed(1)} cm | ` : ''}
+            ${pred.hazards.visibility ? `Visibility: ${pred.hazards.visibility.toFixed(1)} km | ` : ''}
+            ${pred.reasons.length === 0 ? 'No significant weather hazards detected' : ''}
+          </div>
+        </div>
+      `;
+
+      return html;
     }
 
     async function refreshData() {
       document.getElementById('predictions-container').innerHTML = '<div class="loading">Refreshing weather data...</div>';
       
       try {
-        const predictions = await getBusCancellationPredictions();
+        const predictions = await getZonePredictions();
         generateHTML(predictions);
       } catch (error) {
         console.error('Error fetching predictions:', error);
         document.getElementById('predictions-container').innerHTML = `
           <div class="error">
             <h3>Error Loading Weather Data</h3>
-            <p>Unable to fetch weather information. Please check your API keys and try again.</p>
+            <p>Unable to fetch weather information. Please try again later.</p>
             <p style="font-size: 12px; margin-top: 10px;">Error: ${error.message}</p>
           </div>
         `;
