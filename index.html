@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta property="og:title" content="Bus Cancellation Predictor - Emilia" />
   <meta property="og:description" content="Weather-based school bus cancellation predictions for Simcoe County" />
   <meta property="og:type" content="website" />
@@ -10,13 +10,22 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Mea+Culpa&family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
-
   <style>
     @font-face {
         font-family: 'SF Pro Display', sans-serif;
         src: url('fonts/SFProDisplay-Bold.woff2') format('woff2');
         font-weight: bold;
         font-style: normal;
+    }
+
+    @font-face {
+        font-family: 'Mea Culpa';
+        src: local('Mea Culpa Regular'), local('MeaCulpa-Regular'),
+            url('../fonts/MeaCulpa-Regular.woff2') format('woff2'),
+            url('../fonts/MeaCulpa-Regular.woff') format('woff');
+        font-weight: normal;
+        font-style: normal;
+        font-display: auto;
     }
 
     body {
@@ -30,139 +39,248 @@
 
     h1, h2, h3, h4 {
       font-family: "Montserrat", sans-serif;
+      font-optical-sizing: auto;
       font-weight: 500;
+      font-style: normal;
       text-align: center;
       color: #f36a85;
     }
-    @font-face {
-    font-family: 'SF Pro Display', sans-serif;
-    src: url('fonts/SFProDisplay-Bold.woff2') format('woff2');
-    font-weight: bold;
-    font-style: normal;
-}
 
-    @font-face {
-        font-family: 'Mea Culpa';
-        src: local('Mea Culpa Regular'), local('MeaCulpa-Regular'),
-            url('../fonts/MeaCulpa-Regular.woff2') format('woff2'),
-            url('../fonts/MeaCulpa-Regular.woff') format('woff');
-        font-weight: normal;
-        font-style: normal;
-        font-display: auto;
+    h1 {
+      font-size: 32pt;
+      margin: 20px 0;
     }
 
-    @font-face {
-        font-family: 'Mea Culpa';
-        src: local('Mea Culpa Regular'), local('MeaCulpa-Regular'),
-            url('../fonts/MeaCulpa-Regular.woff2') format('woff2'),
-            url('../fonts/MeaCulpa-Regular.woff') format('woff');
-        font-weight: normal;
-        font-style: normal;
-        font-display: auto;
+    .title {
+      font-family: 'Mea Culpa';
+      font-size: 50pt;
+      text-align: center;
+      color: #f36a85;
+      margin: 20px 0;
     }
 
-    body {
-        background-color: #3c2a34; /* Set background color */
-        padding-top: 54px !important;
-        margin-top: 0 !important;
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
     }
 
-    #swf-container {
-        width: 100%;
-        max-width: 800px;
-        height: 600px;
-        border: 1px solid #f2b3c0;
-        margin: 20px auto;
-        background-color: #3c2a34;
-        position: relative;
+    .timestamp {
+      text-align: center;
+      color: #f2b3c0;
+      font-size: 14px;
+      margin-bottom: 30px;
+      font-family: 'SF Pro Display', sans-serif;
+      font-weight: bold;
     }
-    .buttons {
-        text-align: center;
-        margin-bottom: 20px;
+
+    .disclaimer {
+      background-color: rgba(243, 106, 133, 0.15);
+      border: 2px solid #f36a85;
+      border-radius: 8px;
+      padding: 15px 20px;
+      margin: 20px 0;
+      text-align: center;
+      color: #f2b3c0;
+      font-size: 14px;
+      line-height: 1.6;
     }
+
+    .disclaimer strong {
+      color: #f36a85;
+      font-size: 16px;
+    }
+
+    .loading {
+      text-align: center;
+      color: #f36a85;
+      font-size: 18px;
+      margin: 40px 0;
+    }
+
+    .day-section {
+      margin: 40px 0;
+    }
+
+    .day-header {
+      font-size: 36px;
+      color: #f36a85;
+      text-align: center;
+      margin: 30px 0 20px 0;
+      font-family: "Montserrat", sans-serif;
+      font-weight: 600;
+    }
+
+    .zone-card {
+      background-color: rgba(242, 179, 192, 0.1);
+      border-radius: 8px;
+      padding: 25px;
+      margin-bottom: 25px;
+      border: 2px solid #f2b3c0;
+      position: relative;
+    }
+
+    .zone-card.cancelled {
+      border-left: 8px solid #f36a85;
+      background-color: rgba(243, 106, 133, 0.15);
+    }
+
+    .zone-card.not-cancelled {
+      border-left: 8px solid #85f3a8;
+      background-color: rgba(133, 243, 168, 0.1);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .zone-name {
+      font-size: 28px;
+      font-weight: bold;
+      color: #f36a85;
+      margin: 0;
+      font-family: "Montserrat", sans-serif;
+    }
+
+    .locations-list {
+      font-size: 14px;
+      color: #f2b3c0;
+      margin-top: 5px;
+      font-style: italic;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status {
+      font-size: 20px;
+      font-weight: bold;
+      padding: 8px 20px;
+      border-radius: 25px;
+      font-family: 'SF Pro Display', sans-serif;
+    }
+
+    .status.cancelled {
+      background-color: #f36a85;
+      color: white;
+    }
+
+    .status.running {
+      background-color: #85f3a8;
+      color: #3c2a34;
+    }
+
+    .confidence {
+      background-color: #f2b3c0;
+      color: #3c2a34;
+      padding: 8px 15px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: bold;
+      font-family: 'SF Pro Display', sans-serif;
+    }
+
+    .reasons {
+      margin-top: 20px;
+    }
+
+    .reasons-title {
+      color: #f36a85;
+      font-weight: bold;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .reason {
+      background-color: rgba(243, 106, 133, 0.2);
+      border: 1px solid #f36a85;
+      padding: 12px 15px;
+      margin: 8px 0;
+      border-radius: 6px;
+      color: #f2b3c0;
+      font-size: 14px;
+    }
+
+    .hazards {
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid rgba(242, 179, 192, 0.3);
+      font-size: 14px;
+      color: #f2b3c0;
+    }
+
+    .hazards strong {
+      color: #f36a85;
+    }
+
     button {
-        margin: 5px;
-        padding: 10px 20px;
-        background-color: #f36a85;
-        border: 2px solid white; /* Add a solid white border */
-        color: white;
-        cursor: pointer;
-        font-size: 16px;
-        border-radius: 5px;
-        font-family: 'SF Pro Display', sans-serif;
-        font-weight: bold;
+      margin: 10px auto;
+      padding: 12px 25px;
+      background-color: #f36a85;
+      border: 2px solid white;
+      color: white;
+      cursor: pointer;
+      font-size: 16px;
+      border-radius: 5px;
+      font-family: 'SF Pro Display', sans-serif;
+      font-weight: bold;
+      display: block;
+      transition: opacity 0.2s;
     }
 
-    #fullscreen-toggle {
-        display: block;
-        margin: 10px auto;
-    }
-    .footer-text {
-        position: absolute;
-        bottom: 10px;
-        width: 100%;
-        text-align: center;
-        font-size: 14px;
-        color: #f2b3c0;
-        font-family: 'SF Pro Display', sans-serif;
-        font-weight: bold;
-    }
-    .centered-line {
-        text-align: center;
-        margin-top: 20px;
-    }
-    .social-icon {
-        margin: 0 10px;
-        font-size: 24px;
-        color: #f36a85;
-        text-decoration: none;
-    }
-    h1, h2, h3, h4 {
-        font-family: "Montserrat", sans-serif;
-        font-optical-sizing: auto;
-        font-weight: 500;
-        font-style: normal;
-        text-align: center;
-        color: #f36a85; /* Set text color for h3 elements */
-    }
-    .textthatneedsthis {
-        color: #f36a85; /* Set text color for h3 elements */
-        text-shadow: 
-        -2px -2px 0 #f2b3c0,  /* Top-left */
-        0px -2px 0 #f2b3c0,   /* Top */
-        2px -2px 0 #f2b3c0,   /* Top-right */
-        -2px 0px 0 #f2b3c0,   /* Left */
-        2px 0px 0 #f2b3c0,    /* Right */
-        -2px 2px 0 #f2b3c0,   /* Bottom-left */
-        0px 2px 0 #f2b3c0,    /* Bottom */
-        2px 2px 0 #f2b3c0;    /* Bottom-right */
-    }
-    a {
-        color: #f36a85; /* Set link color */
-        text-decoration: none; /* Remove underline from links */
-    }
-    a:hover {
-        text-decoration: underline; /* Underline links on hover */
+    button:hover {
+      opacity: 0.8;
     }
 
-    a.no-underline:hover {
-        text-decoration: none;
+    .error {
+      background-color: rgba(243, 106, 133, 0.2);
+      border: 2px solid #f36a85;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+      color: #f2b3c0;
+      margin: 20px 0;
     }
-    .outlined-text {
-        text-shadow: 
-            -1px -1px 0 #f2b3c0,  /* Top-left */
-            0px -1px 0 #f2b3c0,   /* Top */
-            1px -1px 0 #f2b3c0,   /* Top-right */
-            -1px 0px 0 #f2b3c0,   /* Left */
-            1px 0px 0 #f2b3c0,    /* Right */
-            -1px 1px 0 #f2b3c0,   /* Bottom-left */
-            0px 1px 0 #f2b3c0,    /* Bottom */
-            1px 1px 0 #f2b3c0;    /* Bottom-right */
-    }
+
     .spacer {
-        color: #3c2a34; /* Match background color */
+      color: #3c2a34;
+      user-select: none;
+    }
+
+    @media (max-width: 768px) {
+      .card-header {
+        flex-direction: column;
+        align-items: flex-start;
       }
 
+      .zone-name {
+        font-size: 24px;
+      }
+
+      .status {
+        font-size: 18px;
+      }
+
+      h1 {
+        font-size: 24pt;
+      }
+
+      .title {
+        font-size: 36pt;
+      }
+
+      .day-header {
+        font-size: 28px;
+      }
+    }
     .website-nav {
       background-color: #3c2a34;
       backdrop-filter: blur(20px);
@@ -261,117 +379,44 @@
         left: calc(-9vw);
       }
     }
-    h1 { font-size: 32pt; margin: 20px 0; }
-    .title { font-family: 'Mea Culpa'; font-size: 50pt; text-align: center; color: #f36a85; margin: 20px 0; }
-
-    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-
-    .timestamp { text-align: center; color: #f2b3c0; font-size: 14px; margin-bottom: 20px; font-family: 'SF Pro Display', sans-serif; font-weight: bold; }
-
-    .disclaimer { background-color: rgba(243, 106, 133, 0.15); border: 2px solid #f36a85; border-radius: 8px; padding: 15px 20px; margin: 20px 0; text-align: center; color: #f2b3c0; font-size: 14px; line-height: 1.6; }
-    .disclaimer strong { color: #f36a85; font-size: 16px; }
-
-    .loading { text-align: center; color: #f36a85; font-size: 18px; margin: 40px 0; }
-
-    .day-section { margin: 40px 0; }
-
-    .day-header { font-size: 36px; color: #f36a85; text-align: center; margin: 30px 0 20px 0; font-weight: 600; }
-
-    .zone-card { background-color: rgba(242, 179, 192, 0.1); border-radius: 8px; padding: 25px; margin-bottom: 25px; border: 2px solid #f2b3c0; position: relative; }
-
-    .zone-card.cancelled { border-left: 8px solid #f36a85; background-color: rgba(243, 106, 133, 0.15); }
-    .zone-card.not-cancelled { border-left: 8px solid #85f3a8; background-color: rgba(133, 243, 168, 0.06); }
-
-    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
-    .zone-name { font-size: 28px; font-weight: bold; color: #f36a85; margin: 0; }
-    .locations-list { font-size: 14px; color: #f2b3c0; margin-top: 5px; font-style: italic; }
-
-    .status-badge { display: inline-flex; align-items: center; gap: 10px; }
-    .status { font-size: 20px; font-weight: bold; padding: 8px 20px; border-radius: 25px; }
-    .status.cancelled { background-color: #f36a85; color: white; }
-    .status.running { background-color: #85f3a8; color: #3c2a34; }
-    .confidence { background-color: #f2b3c0; color: #3c2a34; padding: 8px 15px; border-radius: 20px; font-size: 14px; font-weight: bold; }
-
-    .reasons { margin-top: 20px; }
-    .reasons-title { color: #f36a85; font-weight: bold; margin-bottom: 10px; font-size: 16px; }
-    .reason { background-color: rgba(243, 106, 133, 0.2); border: 1px solid #f36a85; padding: 12px 15px; margin: 8px 0; border-radius: 6px; color: #f2b3c0; font-size: 14px; }
-
-    .hazards { margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(242, 179, 192, 0.3); font-size: 14px; color: #f2b3c0; }
-    .hazards strong { color: #f36a85; }
-
-    .alert-banner { padding: 12px 15px; margin-bottom: 12px; border-radius: 8px; cursor: pointer; border: 2px solid rgba(0,0,0,0.06); background-color: rgba(243,106,133,0.12); color: #f2b3c0; }
-    .alert-title { font-weight: 700; font-size: 15px; color: #f36a85; display: flex; justify-content: space-between; align-items: center; gap:10px; }
-    .alert-meta { font-size: 12px; opacity: 0.9; }
-    .alert-details { display: none; margin-top: 10px; background: rgba(242,179,192,0.06); padding: 10px; border-radius: 6px; border: 1px solid rgba(242,179,192,0.2); white-space: pre-wrap; color: #f2b3c0; }
-
-    .alert-banner.expanded .alert-details { display: block; }
-
-    button { margin: 10px auto; padding: 12px 25px; background-color: #f36a85; border: 2px solid white; color: white; cursor: pointer; font-size: 16px; border-radius: 5px; display: block; transition: opacity 0.2s; font-weight:bold; }
-    button:hover { opacity: 0.8; }
-
-    .error { background-color: rgba(243, 106, 133, 0.2); border: 2px solid #f36a85; padding: 20px; border-radius: 8px; text-align: center; color: #f2b3c0; margin: 20px 0; }
-
-    .console-log { font-family: monospace; font-size: 12px; color: #dcdcdc; background: rgba(0,0,0,0.15); padding: 12px; border-radius: 8px; margin-top: 12px; white-space: pre-wrap; max-height: 220px; overflow: auto; }
-
-    @media (max-width: 768px) {
-      .card-header { flex-direction: column; align-items: flex-start; }
-      .zone-name { font-size: 24px; }
-      .status { font-size: 18px; }
-      h1 { font-size: 24pt; }
-      .title { font-size: 36pt; }
-      .day-header { font-size: 28px; }
-    }
-
-    .website-nav { background-color: #3c2a34; backdrop-filter: blur(20px); position: fixed; top: 0; width: 100%; z-index: 9999; }
-    .website-nav ul { list-style: none; margin: 0; padding: 10px 20px 0 20px; display: flex; justify-content: center; align-items: center; height: 44px; }
-    .website-nav a { text-decoration: none; color: #f36a85; font-size: 14px; }
-    .hamburger { display: none; }
   </style>
 </head>
 
-<body>
-  <div id="navbar"></div>
-  <script>
-    // optional external navbar - keep but don't fail if unreachable
-    fetch("https://northpoint.website/nav.html")
-      .then(r => r.text())
-      .then(html => { document.getElementById('navbar').innerHTML = html; })
-      .catch(e => console.log('Navbar load failed (ok):', e));
-  </script>
+<div id="navbar"></div>
+<script>
+  fetch("https://northpoint.website/nav.html") 
+    .then(response => response.text())
+    .then(html => {
+      document.getElementById("navbar").innerHTML = html;
+    })
+    .catch(error => {
+      console.error("Error loading navbar:", error);
+    });
+</script>
 
+<body>
   <div class="container">
     <h3 class="title">Emilia Selene</h3>
     <h1>Simcoe County School Bus Cancellation Predictor (West)</h1>
-
+    
     <div class="disclaimer">
       <strong>⚠️ Disclaimer:</strong><br>
-      This website is for guidance only. Official cancellation decisions are made by Simcoe County school bus operators and school boards.
+      This website is not guaranteed to be perfectly accurate. It may be wrong. Better estimations will be worked on as time goes on if there are errors.
     </div>
 
     <div class="timestamp" id="timestamp">Loading weather data... (If nothing happens after ~10 seconds, hit refresh data)</div>
-
+    
     <div id="predictions-container">
       <div class="loading">Fetching weather conditions and analyzing forecasts...</div>
     </div>
 
     <button onclick="refreshData()">🔄 Refresh Data</button>
 
-    <div id="developer-console" class="console-log" aria-live="polite" role="log">
-      Console log (detailed) will appear here...
-    </div>
-
     <h1 class="spacer">spacer</h1>
   </div>
 
   <script>
-    /*********************************************************************
-     * Bus Cancellation Predictor - Emilia
-     * - Combines Open-Meteo (forecast) + OpenWeatherMap (freezing-rain checks)
-     *   + Environment Canada (api.weather.gc.ca) City Page Weather for alerts.
-     * - Adds clickable alert banners, tomorrow snowfall totals, and verbose logs.
-     *********************************************************************/
-
-    // ---------- CONFIG ----------
+    // Configuration
     const CONFIG = {
       zone: {
         name: 'West Zone',
@@ -383,595 +428,311 @@
         { name: 'Clearview', lat: 44.4000, lon: -80.0833 }
       ],
       openWeatherMapApiKey: '887768fdb608e6944b4945231ac88de7',
-      openMeteoParams: {
-        timezone: 'America/Toronto',
-        forecast_days: 3,
-        hourly: ['temperature_2m','precipitation','rain','snowfall','visibility','weather_code','wind_speed_10m'],
-        daily: ['snowfall_sum'],
-      },
-      envCanadaApiBase: 'https://api.weather.gc.ca'
     };
 
-    // ---------- THRESHOLDS ----------
     const THRESHOLDS = {
-      heavySnow12h: 15,   // cm in 12 hours considered heavy
-      visibility_km: 0.4, // km
-      freezingRain_mm: 0.1,
-      iceStorm_mm: 10,
-      snowSquallRate_cm_per_h: 2 // threshold for snow squall per hour in this dataset
+      heavySnow12h: 15,
+      visibility: 0.4,
+      freezingRain: 0.1,
+      iceStorm: 10,
+      snowSquallRate: 15,
     };
 
-    // ---------- LOGGING ----------
-    const devConsole = document.getElementById('developer-console');
-    function log(msg, data) {
-      const ts = new Date().toLocaleTimeString('en-CA', { timeZone: 'America/Toronto' });
-      const line = `[${ts}] ${msg}` + (data !== undefined ? ` — ${typeof data === 'string' ? data : JSON.stringify(data)}` : '');
-      console.log(line);
-      // prepend so newest lines on top
-      devConsole.textContent = line + '\n' + devConsole.textContent;
-    }
-
-    // ---------- FETCH HELPERS ----------
     async function fetchOpenMeteo(lat, lon) {
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}`
-        + `&hourly=${CONFIG.openMeteoParams.hourly.join(',')}`
-        + `&daily=${CONFIG.openMeteoParams.daily.join(',')}`
-        + `&timezone=${encodeURIComponent(CONFIG.openMeteoParams.timezone)}&forecast_days=${CONFIG.openMeteoParams.forecast_days}`;
-      log('Fetching Open-Meteo', url);
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation,rain,snowfall,visibility,weather_code,wind_speed_10m&daily=snowfall_sum&timezone=America/Toronto&forecast_days=3`;
+      
       try {
-        const r = await fetch(url);
-        const json = await r.json();
-        log('Open-Meteo response received', { lat, lon, status: r.status });
-        return json;
-      } catch (err) {
-        log('Open-Meteo fetch error', String(err));
+        const response = await fetch(url);
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('Open-Meteo API error:', error);
         return null;
       }
     }
 
-    async function fetchOpenWeatherMap(lat, lon) {
-      const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${CONFIG.openWeatherMapApiKey}&units=metric`;
-      log('Fetching OpenWeatherMap 5-day/3-hour forecast', url);
+    async function fetchOpenWeatherMap(lat, lon, apiKey) {
+      const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
+      
       try {
-        const r = await fetch(url);
-        const json = await r.json();
-        log('OpenWeatherMap response received', { lat, lon, status: r.status });
-        return json;
-      } catch (err) {
-        log('OpenWeatherMap fetch error', String(err));
+        const response = await fetch(url);
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('OpenWeatherMap API error:', error);
         return null;
       }
     }
 
-    // Environment Canada: City Page Weather (GeoMet OGC API)
-    // We query the citypageweather-realtime collection by doing a small bbox around the lat/lon.
-    // The collection returns forecasts + warnings in the item properties (schema varies slightly).
-    async function fetchEnvCanadaCityPage(lat, lon) {
-      const delta = 0.05; // small bbox ~5km-ish, safe approximation
-      const minx = (lon - delta).toFixed(5);
-      const miny = (lat - delta).toFixed(5);
-      const maxx = (lon + delta).toFixed(5);
-      const maxy = (lat + delta).toFixed(5);
-      // Use the City Page Weather experimental collection
-      const url = `${CONFIG.envCanadaApiBase}/collections/citypageweather-realtime/items?bbox=${minx},${miny},${maxx},${maxy}&limit=1&lang=en`;
-      log('Fetching Environment Canada City Page Weather (to get warnings/alerts)', url);
-      try {
-        const r = await fetch(url);
-        const json = await r.json();
-        log('Environment Canada City Page response received', { lat, lon, status: r.status, items: (json && json.features ? json.features.length : 0) });
-        return json;
-      } catch (err) {
-        log('Environment Canada fetch error', String(err));
-        return null;
-      }
-    }
-
-    // ---------- ANALYSIS ----------
-
-    function analyzeOpenMeteoHourly(data, startHourIndex, endHourIndex) {
-      log('Analyzing Open-Meteo hourly data slice', { startHourIndex, endHourIndex });
+    function analyzeOpenMeteoData(data, startHour, endHour) {
       const hazards = {
         heavySnow: false,
         lowVisibility: false,
         snowSquall: false,
         snowfall12h: 0,
-        visibility_km_min: null,
+        visibility: null,
         details: []
       };
-      if (!data || !data.hourly || !data.hourly.snowfall) {
-        log('Open-Meteo hourly data missing or malformed', data);
-        return hazards;
-      }
-      // guard indexes
-      const snowfall = data.hourly.snowfall;
-      const visibility = data.hourly.visibility || [];
-      const sliceEnd = Math.min(endHourIndex, snowfall.length);
+
+      if (!data || !data.hourly) return hazards;
+
+      const hourly = data.hourly;
+      const hoursToCheck = Math.min(endHour - startHour, hourly.snowfall.length - startHour);
+
       let totalSnow = 0;
-      for (let i = startHourIndex; i < sliceEnd; i++) {
-        totalSnow += (snowfall[i] || 0);
+      for (let i = startHour; i < startHour + hoursToCheck; i++) {
+        totalSnow += hourly.snowfall[i] || 0;
       }
       hazards.snowfall12h = totalSnow;
+
       if (totalSnow >= THRESHOLDS.heavySnow12h) {
         hazards.heavySnow = true;
-        hazards.details.push(`Heavy snow expected: ${totalSnow.toFixed(1)} cm in the period`);
+        hazards.details.push(`Heavy snow: ${totalSnow.toFixed(1)} cm expected`);
       }
-      // visibility is provided in meters in Open-Meteo; convert to km
-      const visSlice = visibility.slice(startHourIndex, sliceEnd).filter(v => v !== null && v !== undefined);
-      const minVis = visSlice.length ? Math.min(...visSlice) : null;
-      if (minVis !== null) {
-        hazards.visibility_km_min = minVis / 1000;
-        if (hazards.visibility_km_min <= THRESHOLDS.visibility_km) {
-          hazards.lowVisibility = true;
-          hazards.details.push(`Low visibility forecast: ${hazards.visibility_km_min.toFixed(2)} km`);
-        }
+
+      const visibilitySlice = hourly.visibility.slice(startHour, startHour + hoursToCheck).filter(v => v !== null);
+      const minVisibility = visibilitySlice.length > 0 ? Math.min(...visibilitySlice) : 10000;
+      hazards.visibility = minVisibility / 1000;
+      
+      if (hazards.visibility <= THRESHOLDS.visibility) {
+        hazards.lowVisibility = true;
+        hazards.details.push(`Low visibility: ${hazards.visibility.toFixed(2)} km`);
       }
-      // detect intense hourly snowfall rates (simple heuristic for squalls)
-      for (let i = startHourIndex; i < sliceEnd; i++) {
-        const hr = snowfall[i] || 0;
-        if (hr >= THRESHOLDS.snowSquallRate_cm_per_h) {
+
+      for (let i = startHour; i < Math.min(startHour + hoursToCheck, hourly.snowfall.length); i++) {
+        if (hourly.snowfall[i] >= 2) {
           hazards.snowSquall = true;
-          hazards.details.push(`Possible snow squall: ${hr.toFixed(1)} cm/h around hour index ${i}`);
+          hazards.details.push(`Potential snow squall: ${hourly.snowfall[i].toFixed(1)} cm/h`);
           break;
         }
       }
-      log('Open-Meteo hourly analysis result', hazards);
+
       return hazards;
     }
 
-    function analyzeOpenMeteoDaily(data, dayOffset) {
-      log('Analyzing Open-Meteo daily data', { dayOffset });
-      const out = { snowfall_sum: null, notes: [] };
-      try {
-        if (data && data.daily && Array.isArray(data.daily.snowfall_sum)) {
-          const idx = dayOffset; // 0 = today, 1 = tomorrow
-          const val = data.daily.snowfall_sum[idx];
-          out.snowfall_sum = typeof val === 'number' ? val : null;
-          if (out.snowfall_sum !== null) {
-            out.notes.push(`Daily snowfall sum for dayOffset ${dayOffset}: ${out.snowfall_sum} cm`);
-          } else {
-            out.notes.push('No snowfall_sum numeric value found for that day index');
-          }
-        } else {
-          out.notes.push('daily.snowfall_sum array not available in Open-Meteo response');
-        }
-      } catch (err) {
-        out.notes.push('error parsing daily data: ' + String(err));
-      }
-      log('Open-Meteo daily analysis result', out);
-      return out;
-    }
+    function analyzeOpenWeatherMapData(data, dayOffset) {
+      const hazards = {
+        freezingRain: false,
+        iceStorm: false,
+        details: []
+      };
 
-    function analyzeOpenWeatherMap(data, dayOffset) {
-      log('Analyzing OpenWeatherMap forecast for freezing rain/ice', { dayOffset });
-      const hazards = { freezingRain: false, iceStorm: false, details: [] };
-      if (!data || !data.list) {
-        log('OpenWeatherMap data missing/list not present', data);
-        return hazards;
-      }
+      if (!data || !data.list) return hazards;
+
       const now = new Date();
-      const targetDateStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() + dayOffset, 0, 0, 0, 0);
-      const targetDateEnd = new Date(targetDateStart);
-      targetDateEnd.setDate(targetDateEnd.getDate() + 1);
-      for (const item of data.list) {
-        const dt = new Date(item.dt * 1000);
-        if (dt >= targetDateStart && dt < targetDateEnd) {
-          const temp = item.main && typeof item.main.temp === 'number' ? item.main.temp : null;
-          const rain = item.rain ? (item.rain['3h'] || item.rain['1h'] || 0) : 0;
-          // freezing rain if temp < 0 and rain > 0
-          if (temp !== null && temp < 0 && rain > THRESHOLDS.freezingRain_mm) {
+      const targetDate = new Date(now);
+      targetDate.setDate(targetDate.getDate() + dayOffset);
+      targetDate.setHours(0, 0, 0, 0);
+
+      const nextDay = new Date(targetDate);
+      nextDay.setDate(nextDay.getDate() + 1);
+
+      for (let i = 0; i < data.list.length; i++) {
+        const item = data.list[i];
+        const itemDate = new Date(item.dt * 1000);
+        
+        if (itemDate >= targetDate && itemDate < nextDay) {
+          const temp = item.main.temp;
+          const rain = item.rain ? item.rain['3h'] || 0 : 0;
+          
+          if (temp < 0 && rain > 0) {
             hazards.freezingRain = true;
-            hazards.details.push(`Freezing rain about ${rain.toFixed(1)} mm at ${dt.toISOString()} (temp ${temp.toFixed(1)} °C)`);
-            if (rain >= THRESHOLDS.iceStorm_mm) {
+            
+            if (rain >= THRESHOLDS.iceStorm) {
               hazards.iceStorm = true;
-              hazards.details.push('Ice storm intensity threshold exceeded');
+              hazards.details.push(`Ice storm conditions: ${rain.toFixed(1)} mm freezing rain`);
+            } else {
+              hazards.details.push(`Freezing rain: ${rain.toFixed(1)} mm at ${temp.toFixed(1)}°C`);
             }
           }
         }
       }
-      log('OpenWeatherMap analysis result', hazards);
+
       return hazards;
     }
 
-    // helper to combine per-location results into a zone-level aggregate
-    function aggregateZoneResults(perLocationResults) {
-      log('Aggregating per-location results into zone-level summary', perLocationResults);
-      // simple aggregation: take max confidence/flag among locations
-      const agg = {
-        heavySnow: false,
-        lowVisibility: false,
-        snowSquall: false,
-        freezingRain: false,
-        iceStorm: false,
-        snowfall_tomorrow_sum: 0,
-        details: []
+    function predictCancellation(meteoHazards, owmHazards) {
+      const prediction = {
+        cancelled: false,
+        severity: 'none',
+        reasons: [],
+        confidence: 0
       };
-      perLocationResults.forEach(r => {
-        if (!r) return;
-        if (r.meteoHourly) {
-          agg.heavySnow = agg.heavySnow || r.meteoHourly.heavySnow;
-          agg.lowVisibility = agg.lowVisibility || r.meteoHourly.lowVisibility;
-          agg.snowSquall = agg.snowSquall || r.meteoHourly.snowSquall;
-        }
-        if (r.openWeather) {
-          agg.freezingRain = agg.freezingRain || r.openWeather.freezingRain;
-          agg.iceStorm = agg.iceStorm || r.openWeather.iceStorm;
-        }
-        if (r.meteoDaily && typeof r.meteoDaily.snowfall_sum === 'number') {
-          agg.snowfall_tomorrow_sum += r.meteoDaily.snowfall_sum;
-        }
-        if (r.envCanadaAlerts && r.envCanadaAlerts.length) {
-          agg.details.push(...r.envCanadaAlerts);
-        }
-      });
-      // average tomorrow snowfall across locations
-      if (perLocationResults.length > 0) {
-        agg.snowfall_tomorrow_sum = Math.round((agg.snowfall_tomorrow_sum / perLocationResults.length) * 10) / 10;
-      }
-      log('Aggregate zone summary', agg);
-      return agg;
-    }
 
-    function predictCancellationFromAggregate(agg) {
-      log('Predicting cancellation from aggregated hazards', agg);
-      const prediction = { cancelled: false, severity: 'none', reasons: [], confidence: 0 };
+      let score = 0;
 
-      // take highest-priority hazards first
-      if (agg.iceStorm) {
+      if (owmHazards.iceStorm) {
         prediction.cancelled = true;
         prediction.severity = 'extreme';
-        prediction.reasons.push('ICE STORM WARNING detected by Environment Canada - county-wide cancellation likely');
+        prediction.reasons.push('ICE STORM WARNING - County-wide cancellation expected');
         prediction.confidence = 100;
         return prediction;
       }
-      if (agg.freezingRain) {
+
+      if (owmHazards.freezingRain) {
         prediction.cancelled = true;
         prediction.severity = 'high';
-        prediction.reasons.push('Freezing rain warning detected - conditions hazardous for buses');
+        prediction.reasons.push('Freezing rain warning - Large-scale cancellations typical');
         prediction.confidence = 95;
+        score += 50;
       }
-      if (agg.heavySnow) {
+
+      if (meteoHazards.heavySnow) {
         prediction.cancelled = true;
         prediction.severity = 'high';
-        prediction.reasons.push(`Heavy snowfall expected in the next 12 hours (zone avg).`);
+        prediction.reasons.push(`Heavy snow: ${meteoHazards.snowfall12h.toFixed(1)} cm expected`);
         prediction.confidence = Math.max(prediction.confidence, 85);
+        score += 40;
       }
-      if (agg.lowVisibility) {
+
+      if (meteoHazards.lowVisibility) {
         prediction.cancelled = true;
         prediction.severity = 'high';
-        prediction.reasons.push('Low visibility / whiteout-type conditions expected');
+        prediction.reasons.push(`Whiteout conditions: visibility ${meteoHazards.visibility.toFixed(2)} km`);
         prediction.confidence = Math.max(prediction.confidence, 90);
+        score += 45;
       }
-      if (agg.snowSquall) {
+
+      if (meteoHazards.snowSquall) {
         prediction.cancelled = true;
         prediction.severity = 'moderate';
-        prediction.reasons.push('Snow squall potential — localized but dangerous');
+        prediction.reasons.push('Snow squall warning - Zone-specific cancellations likely');
         prediction.confidence = Math.max(prediction.confidence, 75);
+        score += 35;
       }
-      if (!prediction.cancelled) {
-        // moderate snowfall tomorrow may still make it likely
-        if (agg.snowfall_tomorrow_sum >= 10) {
-          prediction.severity = 'moderate';
-          prediction.reasons.push(`Tomorrow snowfall forecast (zone avg): ${agg.snowfall_tomorrow_sum} cm`);
-          prediction.confidence = Math.max(prediction.confidence, 60);
-          if (agg.snowfall_tomorrow_sum >= 12) {
-            prediction.cancelled = true;
-            prediction.confidence = Math.max(prediction.confidence, 65);
-          }
-        } else {
-          prediction.severity = 'low';
-          prediction.confidence = Math.max(prediction.confidence, 20);
+
+      if (meteoHazards.snowfall12h >= 10 && meteoHazards.snowfall12h < 15) {
+        prediction.severity = 'moderate';
+        prediction.reasons.push(`Moderate snow: ${meteoHazards.snowfall12h.toFixed(1)} cm expected`);
+        score += 20;
+        
+        if (score >= 25) {
+          prediction.cancelled = true;
+          prediction.confidence = 60;
         }
       }
 
-      log('Prediction result', prediction);
-      return prediction;
-    }
-
-    // ---------- UI RENDERING ----------
-    function generateAlertBannerHtml(alert) {
-      // alert: { title, severity, effective, expires, description, uri, source }
-      const title = escapeHtml(alert.title || alert.event || 'Alert');
-      const severity = escapeHtml(alert.severity || alert.priority || '');
-      const when = (alert.effective ? new Date(alert.effective).toLocaleString('en-CA', { timeZone: 'America/Toronto' }) : 'Unknown start');
-      const expires = (alert.expires ? new Date(alert.expires).toLocaleString('en-CA', { timeZone: 'America/Toronto' }) : 'Unknown end');
-      const desc = escapeHtml(alert.description || alert.summary || alert.instruction || '');
-      return `
-        <div class="alert-banner" data-uri="${escapeHtml(alert.uri||'')}" role="button" tabindex="0">
-          <div class="alert-title">
-            <div>
-              <span style="font-weight:900">${title}</span>
-              <div class="alert-meta">${severity} • ${when} → ${expires}</div>
-            </div>
-            <div style="font-size:12px;opacity:0.95">click to expand</div>
-          </div>
-          <div class="alert-details">${desc}${alert.instruction ? '\n\n' + escapeHtml(alert.instruction) : ''}</div>
-        </div>
-      `;
-    }
-
-    function generateZoneCardHtml(prediction, agg) {
-      const statusClass = prediction.cancelled ? 'cancelled' : 'not-cancelled';
-      const statusText = prediction.cancelled ? 'LIKELY CANCELLED' : 'RUNNING';
-      const statusBadgeClass = prediction.cancelled ? 'cancelled' : 'running';
-      let html = `<div class="zone-card ${statusClass}">`;
-      html += `
-        <div class="card-header">
-          <div>
-            <h2 class="zone-name">${CONFIG.zone.name}</h2>
-            <div class="locations-list">${CONFIG.zone.locations.join(', ')}</div>
-          </div>
-          <div class="status-badge">
-            <span class="status ${statusBadgeClass}">${statusText}</span>
-            <span class="confidence">${prediction.confidence}% possibility</span>
-          </div>
-        </div>
-      `;
-
-      // alerts section (if any)
-      if (agg.details && agg.details.length) {
-        html += `<div class="alerts-section">`;
-        html += `<div style="margin-bottom:8px; color:#f36a85; font-weight:700;">Environment Canada Alerts</div>`;
-        agg.details.forEach(a => {
-          html += generateAlertBannerHtml(a);
-        });
-        html += `</div>`;
+      if (prediction.confidence === 0) {
+        prediction.confidence = Math.min(score, 100);
       }
 
-      if (prediction.reasons.length > 0) {
-        html += `
-          <div class="reasons">
-            <div class="reasons-title">⚠️ Reasons:</div>
-            ${prediction.reasons.map(r => `<div class="reason">${escapeHtml(r)}</div>`).join('')}
-          </div>
-        `;
+      if (score >= 30 && !prediction.cancelled) {
+        prediction.cancelled = true;
+        prediction.confidence = Math.max(prediction.confidence, 70);
       }
 
-      html += `
-        <div class="hazards">
-          <strong>Forecast Conditions Summary:</strong><br>
-          ${agg.snowfall_tomorrow_sum !== null ? `Tomorrow snowfall (zone avg): ${agg.snowfall_tomorrow_sum} cm | ` : ''}
-          ${agg.details && agg.details.length ? `Active alerts: ${agg.details.length} | ` : ''}
-          ${prediction.reasons.length === 0 ? 'No immediate high-priority hazards detected' : ''}
-        </div>
-      `;
-
-      html += `</div>`; // zone-card
-      return html;
+      return { ...prediction, hazards: meteoHazards };
     }
 
-    function attachAlertToggleListeners() {
-      document.querySelectorAll('.alert-banner').forEach(b => {
-        b.addEventListener('click', () => {
-          b.classList.toggle('expanded');
-          log('User toggled alert banner', { uri: b.dataset.uri, expanded: b.classList.contains('expanded') });
-        });
-        b.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            b.click();
-          }
-        });
-      });
-    }
-
-    // ---------- MAIN FLOW ----------
     async function getZonePredictions() {
-      log('BEGIN getZonePredictions - start fetching for all coordinates in zone', CONFIG.coordinates);
-      // fetch for each coordinate: Open-Meteo, OpenWeatherMap, ECCC city page
-      const perLocationPromises = CONFIG.coordinates.map(async (coord) => {
-        log('Starting fetch for location', coord);
-        const meteo = await fetchOpenMeteo(coord.lat, coord.lon);
-        const owm = await fetchOpenWeatherMap(coord.lat, coord.lon);
-        const eccc = await fetchEnvCanadaCityPage(coord.lat, coord.lon);
+      const predictions = { today: null, tomorrow: null };
 
-        // analyze
-        log('Analyzing fetch results for location', coord.name);
-        // For "today" analysis next 12 hours from current hour: figure out index for Open-Meteo hourly arrays
-        let meteoHourlyAnalysis = null;
-        let meteoDailyAnalysisTomorrow = null;
-        try {
-          if (meteo && meteo.hourly && Array.isArray(meteo.hourly.time)) {
-            // find current hour index in Open-Meteo time array
-            const nowISO = new Date().toISOString().slice(0,19); // e.g. "2025-11-11T12:00:00"
-            // Find nearest hour index by matching prefix YYYY-MM-DDTHH:MM
-            // We'll search by date-hour match between arrays (Open-Meteo times are full timestamps)
-            const now = new Date();
-            const tzNow = new Date(now.toLocaleString('en-CA', { timeZone: CONFIG.openMeteoParams.timezone }));
-            const hourStr = tzNow.toISOString().slice(0,13); // "YYYY-MM-DDTHH"
-            let startIndex = meteo.hourly.time.findIndex(t => t && t.slice(0,13) === hourStr);
-            if (startIndex === -1) {
-              // fallback to 0
-              startIndex = 0;
-              log('Could not find exact hour match in Open-Meteo hourly times; using index 0 as fallback', { location: coord.name });
-            }
-            const endIndex = startIndex + 12;
-            meteoHourlyAnalysis = analyzeOpenMeteoHourly(meteo, startIndex, endIndex);
-            meteoDailyAnalysisTomorrow = analyzeOpenMeteoDaily(meteo, 1); // dayOffset 1 => tomorrow
-          } else {
-            log('Open-Meteo hourly.time not present or malformed for', coord);
-          }
-        } catch (err) {
-          log('Error while analyzing Open-Meteo data for location', String(err));
-        }
+      // Fetch all data for the zone (averaging multiple locations)
+      const allData = await Promise.all(
+        CONFIG.coordinates.map(coord => Promise.all([
+          fetchOpenMeteo(coord.lat, coord.lon),
+          fetchOpenWeatherMap(coord.lat, coord.lon, CONFIG.openWeatherMapApiKey)
+        ]))
+      );
 
-        const owmAnalysisToday = analyzeOpenWeatherMap(owm, 0);
-        const owmAnalysisTomorrow = analyzeOpenWeatherMap(owm, 1);
+      // Today's prediction (next 12 hours)
+      const todayMeteoHazards = analyzeOpenMeteoData(allData[0][0], 0, 12);
+      const todayOwmHazards = analyzeOpenWeatherMapData(allData[0][1], 0);
+      predictions.today = predictCancellation(todayMeteoHazards, todayOwmHazards);
 
-        // parse Environment Canada alerts from the citypageweather feature, if present
-        const alerts = [];
-        try {
-          if (eccc && eccc.features && eccc.features.length) {
-            const item = eccc.features[0];
-            // The collection schema can vary, but often warnings/alerts appear under properties like "warnings", "currentWarnings", "warningsText", "alerts", or "weatherAlerts"
-            const props = item.properties || item;
-            log('Inspecting Environment Canada city page properties for alerts', { propsKeys: Object.keys(props) });
-            // try multiple known fields
-            const candidateFields = ['warnings', 'warningsText', 'weatherAlerts', 'alerts', 'regionalAlerts', 'warnings_display', 'weatherMessage', 'special_warnings'];
-            for (const field of candidateFields) {
-              if (props[field]) {
-                // normalize into array of alert-like objects
-                const raw = props[field];
-                if (Array.isArray(raw)) {
-                  for (const r of raw) {
-                    // attempt to standardize fields
-                    alerts.push({
-                      title: r.event || r.headline || r.title || r.name || 'Alert',
-                      severity: r.severity || r.priority || r.level || '',
-                      effective: r.effective || r.start || r.onset || null,
-                      expires: r.expires || r.ends || null,
-                      description: r.description || r.summary || r.text || '',
-                      instruction: r.instruction || r.instructionText || '',
-                      uri: r.uri || props.uri || ''
-                    });
-                  }
-                } else if (typeof raw === 'string') {
-                  alerts.push({ title: field, description: raw, severity: '', effective: null, expires: null, uri: '' });
-                } else if (typeof raw === 'object') {
-                  alerts.push({
-                    title: raw.event || raw.headline || raw.title || field,
-                    severity: raw.severity || '',
-                    effective: raw.effective || null,
-                    expires: raw.expires || null,
-                    description: raw.description || raw.summary || '',
-                    instruction: raw.instruction || '',
-                    uri: raw.uri || ''
-                  });
-                }
-              }
-            }
-            // Some items include "warnings" embedded inside 'forecast' or 'currentConditions' keys — search generically
-            if (alerts.length === 0) {
-              // try to find CAP-like 'alerts' inside item.links or properties other keys
-              for (const k of Object.keys(props)) {
-                const v = props[k];
-                if (v && typeof v === 'object') {
-                  if (v.event || v.description || v.headline) {
-                    alerts.push({
-                      title: v.event || v.headline || k,
-                      description: v.description || JSON.stringify(v).slice(0,500),
-                      severity: v.severity || '',
-                      effective: v.effective || null,
-                      expires: v.expires || null,
-                      uri: v.uri || ''
-                    });
-                  }
-                }
-              }
-            }
-          } else {
-            log('No features returned in Environment Canada city page response for this coordinate', coord);
-          }
-        } catch (err) {
-          log('Error while parsing Environment Canada response', String(err));
-        }
+      // Tomorrow's prediction (24-36 hours from now)
+      const tomorrowMeteoHazards = analyzeOpenMeteoData(allData[0][0], 24, 36);
+      const tomorrowOwmHazards = analyzeOpenWeatherMapData(allData[0][1], 1);
+      predictions.tomorrow = predictCancellation(tomorrowMeteoHazards, tomorrowOwmHazards);
 
-        log('Per-location analysis compiled', { location: coord.name, meteoHourlyAnalysis, meteoDailyAnalysisTomorrow, owmAnalysisToday, owmAnalysisTomorrow, alertsCount: alerts.length });
-        return {
-          location: coord,
-          meteoHourly: meteoHourlyAnalysis,
-          meteoDaily: meteoDailyAnalysisTomorrow,
-          openWeatherToday: owmAnalysisToday,
-          openWeatherTomorrow: owmAnalysisTomorrow,
-          envCanadaAlerts: alerts
-        };
-      });
-
-      // wait all
-      const perLocationResults = await Promise.all(perLocationPromises);
-      log('All per-location fetches & analyses complete', perLocationResults);
-
-      // aggregate across zone
-      const agg = aggregateZoneResults(perLocationResults);
-      // generate prediction
-      const prediction = predictCancellationFromAggregate(agg);
-
-      return { perLocationResults, agg, prediction };
+      return predictions;
     }
 
-    function generateHTMLFromResults(results) {
-      log('Generating HTML from aggregated results', results);
-      const ts = new Date().toLocaleString('en-CA', { timeZone: 'America/Toronto' });
-      document.getElementById('timestamp').textContent = `Last Updated: ${ts}`;
+    function generateHTML(predictions) {
+      const timestamp = new Date().toLocaleString('en-CA', { timeZone: 'America/Toronto' });
+      document.getElementById('timestamp').textContent = `Last Updated: ${timestamp}`;
 
       const today = new Date().toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Toronto' });
-      const tomorrowDate = new Date(Date.now() + 86400000);
-      const tomorrow = tomorrowDate.toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Toronto' });
+      const tomorrow = new Date(Date.now() + 86400000).toLocaleDateString('en-CA', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'America/Toronto' });
 
       let html = '';
 
-      // Today's section
+      // Today's prediction
       html += `<div class="day-section">`;
       html += `<h2 class="day-header">📅 ${today} (Today)</h2>`;
-      html += generateZoneCardHtml(results.prediction, results.agg);
+      html += generateZoneCard(predictions.today);
       html += `</div>`;
 
-      // Tomorrow's section with explicit snowfall info
+      // Tomorrow's prediction
       html += `<div class="day-section">`;
       html += `<h2 class="day-header">📅 ${tomorrow} (Tomorrow)</h2>`;
-      // For tomorrow, provide a separate subcard that shows snowfall forecast explicitly
-      html += `
-        <div class="zone-card not-cancelled">
-          <div class="card-header">
-            <div>
-              <h2 class="zone-name">${CONFIG.zone.name} — Tomorrow details</h2>
-              <div class="locations-list">${CONFIG.zone.locations.join(', ')}</div>
-            </div>
-            <div class="status-badge">
-              <span class="confidence">Zone average snowfall: ${results.agg.snowfall_tomorrow_sum !== null ? results.agg.snowfall_tomorrow_sum + ' cm' : 'No data'}</span>
-            </div>
-          </div>
-          <div class="hazards">
-            <strong>Tomorrow's snowfall details (zone average):</strong><br>
-            ${results.agg.snowfall_tomorrow_sum !== null ? `${results.agg.snowfall_tomorrow_sum} cm expected` : 'No snowfall forecast available'}
-          </div>
-        </div>
-      `;
+      html += generateZoneCard(predictions.tomorrow);
       html += `</div>`;
 
       document.getElementById('predictions-container').innerHTML = html;
-
-      // make alert banners interactive
-      attachAlertToggleListeners();
     }
 
-    // ---------- UTILITIES ----------
-    function escapeHtml(unsafe) {
-      if (unsafe === null || unsafe === undefined) return '';
-      return String(unsafe)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+    function generateZoneCard(pred) {
+      const statusClass = pred.cancelled ? 'cancelled' : 'not-cancelled';
+      const statusText = pred.cancelled ? 'LIKELY CANCELLED' : 'RUNNING';
+      const statusBadgeClass = pred.cancelled ? 'cancelled' : 'running';
+      
+      let html = `
+        <div class="zone-card ${statusClass}">
+          <div class="card-header">
+            <div>
+              <h2 class="zone-name">${CONFIG.zone.name}</h2>
+              <div class="locations-list">${CONFIG.zone.locations.join(', ')}</div>
+            </div>
+            <div class="status-badge">
+              <span class="status ${statusBadgeClass}">${statusText}</span>
+              <span class="confidence">${pred.confidence}% possibility</span>
+            </div>
+          </div>
+      `;
+
+      if (pred.reasons.length > 0) {
+        html += `
+          <div class="reasons">
+            <div class="reasons-title">⚠️ Reasons:</div>
+            ${pred.reasons.map(r => `<div class="reason">${r}</div>`).join('')}
+          </div>
+        `;
+      }
+
+      html += `
+          <div class="hazards">
+            <strong>Forecast Conditions:</strong><br>
+            ${pred.hazards.snowfall12h > 0 ? `Snowfall: ${pred.hazards.snowfall12h.toFixed(1)} cm | ` : ''}
+            ${pred.hazards.visibility ? `Visibility: ${pred.hazards.visibility.toFixed(1)} km | ` : ''}
+            ${pred.reasons.length === 0 ? 'No significant weather hazards detected' : ''}
+          </div>
+        </div>
+      `;
+
+      return html;
     }
 
-    // ---------- ENTRY POINT ----------
     async function refreshData() {
-      log('--- User requested data refresh ---');
       document.getElementById('predictions-container').innerHTML = '<div class="loading">Refreshing weather data...</div>';
+      
       try {
-        const results = await getZonePredictions();
-        log('Results returned from getZonePredictions', results);
-        generateHTMLFromResults(results);
-        log('UI updated with latest results');
-      } catch (err) {
-        log('Error in refreshData main flow', String(err));
+        const predictions = await getZonePredictions();
+        generateHTML(predictions);
+      } catch (error) {
+        console.error('Error fetching predictions:', error);
         document.getElementById('predictions-container').innerHTML = `
           <div class="error">
             <h3>Error Loading Weather Data</h3>
-            <p>Unable to fetch or analyze weather information. Please try again later.</p>
-            <p style="font-size: 12px; margin-top: 10px;">Error: ${escapeHtml(String(err))}</p>
+            <p>Unable to fetch weather information. Please try again later.</p>
+            <p style="font-size: 12px; margin-top: 10px;">Error: ${error.message}</p>
           </div>
         `;
       }
     }
 
-    // run on load
-    window.addEventListener('DOMContentLoaded', () => {
-      log('DOM content loaded — beginning initial refresh');
-      refreshData();
-    });
-
+    // Load data on page load
+    window.addEventListener('DOMContentLoaded', refreshData);
   </script>
 </body>
 </html>
