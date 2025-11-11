@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta property="og:title" content="Bus Cancellation Predictor - Emilia" />
+  <meta property="og:description" content="Weather-based school bus cancellation predictions for Simcoe County" />
+  <meta property="og:type" content="website" />
+  <title>Bus Cancellation Predictor - Emilia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Mea+Culpa&family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  <style>
+    @font-face {
+        font-family: 'SF Pro Display', sans-serif;
+        src: url('fonts/SFProDisplay-Bold.woff2') format('woff2');
+        font-weight: bold;
+        font-style: normal;
+    }
+
+    @font-face {
+        font-family: 'Mea Culpa';
+        src: local('Mea Culpa Regular'), local('MeaCulpa-Regular'),
+            url('../fonts/MeaCulpa-Regular.woff2') format('woff2'),
+            url('../fonts/MeaCulpa-Regular.woff') format('woff');
+        font-weight: normal;
+        font-style: normal;
+        font-display: auto;
+    }
+
+    @font-face {
+        font-family: 'Mea Culpa';
+        src: local('Mea Culpa Regular'), local('MeaCulpa-Regular'),
+            url('../fonts/MeaCulpa-Regular.woff2') format('woff2'),
+            url('../fonts/MeaCulpa-Regular.woff') format('woff');
+        font-weight: normal;
+        font-style: normal;
+        font-display: auto;
+    }
+
+    body {
+      background-color: #3c2a34;
+      padding-top: 54px !important;
+      margin-top: 0 !important;
+      margin: 0;
+      font-family: "Montserrat", sans-serif;
+      color: #f2b3c0;
+    }
+
+    h1, h2, h3, h4 {
+      font-family: "Montserrat", sans-serif;
+      font-optical-sizing: auto;
+      font-weight: 500;
+      font-style: normal;
+      text-align: center;
+      color: #f36a85;
+    }
+
+    h1 {
+      font-size: 32pt;
+      margin: 20px 0;
+    }
+
+    .title {
+      font-family: 'Mea Culpa';
+      font-size: 50pt;
+      text-align: center;
+      color: #f36a85;
+      margin: 20px 0;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .timestamp {
+      text-align: center;
+      color: #f2b3c0;
+      font-size: 14px;
+      margin-bottom: 30px;
+      font-family: 'SF Pro Display', sans-serif;
+      font-weight: bold;
+    }
+
+    .loading {
+      text-align: center;
+      color: #f36a85;
+      font-size: 18px;
+      margin: 40px 0;
+    }
+
+    .location-card {
+      background-color: rgba(242, 179, 192, 0.1);
+      border-radius: 8px;
+      padding: 25px;
+      margin-bottom: 25px;
+      border: 2px solid #f2b3c0;
+      position: relative;
+    }
+
+    .location-card.cancelled {
+      border-left: 8px solid #f36a85;
+      background-color: rgba(243, 106, 133, 0.15);
+    }
+
+    .location-card.not-cancelled {
+      border-left: 8px solid #85f3a8;
+      background-color: rgba(133, 243, 168, 0.1);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .location-name {
+      font-size: 28px;
+      font-weight: bold;
+      color: #f36a85;
+      margin: 0;
+      font-family: "Montserrat", sans-serif;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status {
+      font-size: 20px;
+      font-weight: bold;
+      padding: 8px 20px;
+      border-radius: 25px;
+      font-family: 'SF Pro Display', sans-serif;
+    }
+
+    .status.cancelled {
+      background-color: #f36a85;
+      color: white;
+    }
+
+    .status.running {
+      background-color: #85f3a8;
+      color: #3c2a34;
+    }
+
+    .confidence {
+      background-color: #f2b3c0;
+      color: #3c2a34;
+      padding: 8px 15px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: bold;
+      font-family: 'SF Pro Display', sans-serif;
+    }
+
+    .reasons {
+      margin-top: 20px;
+    }
+
+    .reasons-title {
+      color: #f36a85;
+      font-weight: bold;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
+
+    .reason {
+      background-color: rgba(243, 106, 133, 0.2);
+      border: 1px solid #f36a85;
+      padding: 12px 15px;
+      margin: 8px 0;
+      border-radius: 6px;
+      color: #f2b3c0;
+      font-size: 14px;
+    }
+
+    .hazards {
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid rgba(242, 179, 192, 0.3);
+      font-size: 14px;
+      color: #f2b3c0;
+    }
+
+    .hazards strong {
+      color: #f36a85;
+    }
+
+    button {
+      margin: 10px auto;
+      padding: 12px 25px;
+      background-color: #f36a85;
+      border: 2px solid white;
+      color: white;
+      cursor: pointer;
+      font-size: 16px;
+      border-radius: 5px;
+      font-family: 'SF Pro Display', sans-serif;
+      font-weight: bold;
+      display: block;
+      transition: opacity 0.2s;
+    }
+
+    button:hover {
+      opacity: 0.8;
+    }
+
+    .error {
+      background-color: rgba(243, 106, 133, 0.2);
+      border: 2px solid #f36a85;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+      color: #f2b3c0;
+      margin: 20px 0;
+    }
+
+    .spacer {
+      color: #3c2a34;
+      user-select: none;
+    }
+
+    @media (max-width: 768px) {
+      .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .location-name {
+        font-size: 24px;
+      }
+
+      .status {
+        font-size: 18px;
+      }
+
+      h1 {
+        font-size: 24pt;
+      }
+
+      .title {
+        font-size: 36pt;
+      }
+    }
+  </style>
+</head>
+
+<div id="navbar"></div>
+<script>
+  fetch("https://northpoint.website/nav.html") 
+    .then(response => response.text())
+    .then(html => {
+      document.getElementById("navbar").innerHTML = html;
+    })
+    .catch(error => {
+      console.error("Error loading navbar:", error);
+    });
+</script>
+
+<body>
+  <div class="container">
+    <h3 class="title">Weather Predictions</h3>
+    <h1>🚌 Simcoe County School Bus Cancellation Predictor</h1>
+    <div class="timestamp" id="timestamp">Loading weather data...</div>
+    
+    <div id="predictions-container">
+      <div class="loading">Fetching weather conditions and analyzing forecasts...</div>
+    </div>
+
+    <button onclick="refreshData()">🔄 Refresh Data</button>
+
+    <h1 class="spacer">spacer</h1>
+  </div>
+
+  <script>
+    // Configuration
+    const CONFIG = {
+      locations: [
+        { name: 'Collingwood', lat: 44.5011, lon: -80.2168 },
+        { name: 'Wasaga Beach', lat: 44.5206, lon: -80.0167 },
+        { name: 'Stayner', lat: 44.4000, lon: -80.0833 }
+      ],
+      openWeatherMapApiKey: '887768fdb608e6944b4945231ac88de7', // Replace with your API key
+    };
+
+    const THRESHOLDS = {
+      heavySnow12h: 15,
+      visibility: 0.4,
+      freezingRain: 0.1,
+      iceStorm: 10,
+      snowSquallRate: 15,
+    };
+
+    async function fetchOpenMeteo(lat, lon) {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation,rain,snowfall,visibility,weather_code,wind_speed_10m&daily=snowfall_sum&timezone=America/Toronto&forecast_days=3`;
+      
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('Open-Meteo API error:', error);
+        return null;
+      }
+    }
+
+    async function fetchOpenWeatherMap(lat, lon, apiKey) {
+      const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
+      
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('OpenWeatherMap API error:', error);
+        return null;
+      }
+    }
+
+    function analyzeOpenMeteoData(data) {
+      const hazards = {
+        heavySnow: false,
+        lowVisibility: false,
+        snowSquall: false,
+        snowfall12h: 0,
+        visibility: null,
+        details: []
+      };
+
+      if (!data || !data.hourly) return hazards;
+
+      const hourly = data.hourly;
+      const next12Hours = 12;
+
+      let totalSnow = 0;
+      for (let i = 0; i < Math.min(next12Hours, hourly.snowfall.length); i++) {
+        totalSnow += hourly.snowfall[i] || 0;
+      }
+      hazards.snowfall12h = totalSnow;
+
+      if (totalSnow >= THRESHOLDS.heavySnow12h) {
+        hazards.heavySnow = true;
+        hazards.details.push(`Heavy snow: ${totalSnow.toFixed(1)} cm in 12h`);
+      }
+
+      const minVisibility = Math.min(...hourly.visibility.slice(0, next12Hours).filter(v => v !== null));
+      hazards.visibility = minVisibility / 1000;
+      
+      if (hazards.visibility <= THRESHOLDS.visibility) {
+        hazards.lowVisibility = true;
+        hazards.details.push(`Low visibility: ${hazards.visibility.toFixed(2)} km`);
+      }
+
+      for (let i = 0; i < Math.min(6, hourly.snowfall.length); i++) {
+        if (hourly.snowfall[i] >= 2) {
+          hazards.snowSquall = true;
+          hazards.details.push(`Potential snow squall: ${hourly.snowfall[i].toFixed(1)} cm/h`);
+          break;
+        }
+      }
+
+      return hazards;
+    }
+
+    function analyzeOpenWeatherMapData(data) {
+      const hazards = {
+        freezingRain: false,
+        iceStorm: false,
+        details: []
+      };
+
+      if (!data || !data.list) return hazards;
+
+      for (let i = 0; i < Math.min(4, data.list.length); i++) {
+        const item = data.list[i];
+        const temp = item.main.temp;
+        const rain = item.rain ? item.rain['3h'] || 0 : 0;
+        
+        if (temp < 0 && rain > 0) {
+          hazards.freezingRain = true;
+          
+          if (rain >= THRESHOLDS.iceStorm) {
+            hazards.iceStorm = true;
+            hazards.details.push(`Ice storm conditions: ${rain.toFixed(1)} mm freezing rain`);
+          } else {
+            hazards.details.push(`Freezing rain: ${rain.toFixed(1)} mm at ${temp.toFixed(1)}°C`);
+          }
+        }
+      }
+
+      return hazards;
+    }
+
+    function predictCancellation(location, meteoHazards, owmHazards) {
+      const prediction = {
+        location: location.name,
+        cancelled: false,
+        severity: 'none',
+        reasons: [],
+        confidence: 0
+      };
+
+      let score = 0;
+
+      if (owmHazards.iceStorm) {
+        prediction.cancelled = true;
+        prediction.severity = 'extreme';
+        prediction.reasons.push('ICE STORM WARNING - County-wide cancellation expected');
+        prediction.confidence = 100;
+        return prediction;
+      }
+
+      if (owmHazards.freezingRain) {
+        prediction.cancelled = true;
+        prediction.severity = 'high';
+        prediction.reasons.push('Freezing rain warning - Large-scale cancellations typical');
+        prediction.confidence = 95;
+        score += 50;
+      }
+
+      if (meteoHazards.heavySnow) {
+        prediction.cancelled = true;
+        prediction.severity = 'high';
+        prediction.reasons.push(`Heavy snow: ${meteoHazards.snowfall12h.toFixed(1)} cm expected in 12h`);
+        prediction.confidence = Math.max(prediction.confidence, 85);
+        score += 40;
+      }
+
+      if (meteoHazards.lowVisibility) {
+        prediction.cancelled = true;
+        prediction.severity = 'high';
+        prediction.reasons.push(`Whiteout conditions: visibility ${meteoHazards.visibility.toFixed(2)} km`);
+        prediction.confidence = Math.max(prediction.confidence, 90);
+        score += 45;
+      }
+
+      if (meteoHazards.snowSquall) {
+        prediction.cancelled = true;
+        prediction.severity = 'moderate';
+        prediction.reasons.push('Snow squall warning - Zone-specific cancellations likely');
+        prediction.confidence = Math.max(prediction.confidence, 75);
+        score += 35;
+      }
+
+      if (meteoHazards.snowfall12h >= 10 && meteoHazards.snowfall12h < 15) {
+        prediction.severity = 'moderate';
+        prediction.reasons.push(`Moderate snow: ${meteoHazards.snowfall12h.toFixed(1)} cm expected`);
+        score += 20;
+        
+        if (score >= 25) {
+          prediction.cancelled = true;
+          prediction.confidence = 60;
+        }
+      }
+
+      if (prediction.confidence === 0) {
+        prediction.confidence = Math.min(score, 100);
+      }
+
+      if (score >= 30 && !prediction.cancelled) {
+        prediction.cancelled = true;
+        prediction.confidence = Math.max(prediction.confidence, 70);
+      }
+
+      return { ...prediction, hazards: meteoHazards };
+    }
+
+    async function getBusCancellationPredictions() {
+      const predictions = [];
+
+      for (const location of CONFIG.locations) {
+        const [meteoData, owmData] = await Promise.all([
+          fetchOpenMeteo(location.lat, location.lon),
+          fetchOpenWeatherMap(location.lat, location.lon, CONFIG.openWeatherMapApiKey)
+        ]);
+
+        const meteoHazards = analyzeOpenMeteoData(meteoData);
+        const owmHazards = analyzeOpenWeatherMapData(owmData);
+
+        const prediction = predictCancellation(location, meteoHazards, owmHazards);
+        predictions.push(prediction);
+      }
+
+      return predictions;
+    }
+
+    function generateHTML(predictions) {
+      const timestamp = new Date().toLocaleString('en-CA', { timeZone: 'America/Toronto' });
+      document.getElementById('timestamp').textContent = `Last Updated: ${timestamp}`;
+
+      let html = '';
+
+      predictions.forEach(pred => {
+        const statusClass = pred.cancelled ? 'cancelled' : 'not-cancelled';
+        const statusText = pred.cancelled ? 'LIKELY CANCELLED' : 'RUNNING';
+        const statusBadgeClass = pred.cancelled ? 'cancelled' : 'running';
+        
+        html += `
+          <div class="location-card ${statusClass}">
+            <div class="card-header">
+              <h2 class="location-name">${pred.location}</h2>
+              <div class="status-badge">
+                <span class="status ${statusBadgeClass}">${statusText}</span>
+                <span class="confidence">${pred.confidence}% confidence</span>
+              </div>
+            </div>
+        `;
+
+        if (pred.reasons.length > 0) {
+          html += `
+            <div class="reasons">
+              <div class="reasons-title">⚠️ Reasons:</div>
+              ${pred.reasons.map(r => `<div class="reason">${r}</div>`).join('')}
+            </div>
+          `;
+        }
+
+        html += `
+            <div class="hazards">
+              <strong>Current Conditions:</strong><br>
+              ${pred.hazards.snowfall12h > 0 ? `Snowfall: ${pred.hazards.snowfall12h.toFixed(1)} cm (12h) | ` : ''}
+              ${pred.hazards.visibility ? `Visibility: ${pred.hazards.visibility.toFixed(1)} km | ` : ''}
+              ${pred.reasons.length === 0 ? 'No significant weather hazards detected' : ''}
+            </div>
+          </div>
+        `;
+      });
+
+      document.getElementById('predictions-container').innerHTML = html;
+    }
+
+    async function refreshData() {
+      document.getElementById('predictions-container').innerHTML = '<div class="loading">Refreshing weather data...</div>';
+      
+      try {
+        const predictions = await getBusCancellationPredictions();
+        generateHTML(predictions);
+      } catch (error) {
+        console.error('Error fetching predictions:', error);
+        document.getElementById('predictions-container').innerHTML = `
+          <div class="error">
+            <h3>Error Loading Weather Data</h3>
+            <p>Unable to fetch weather information. Please check your API keys and try again.</p>
+            <p style="font-size: 12px; margin-top: 10px;">Error: ${error.message}</p>
+          </div>
+        `;
+      }
+    }
+
+    // Load data on page load
+    window.addEventListener('DOMContentLoaded', refreshData);
+  </script>
+</body>
+</html>

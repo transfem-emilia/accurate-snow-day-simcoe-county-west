@@ -1,0 +1,227 @@
+@font-face {
+    font-family: 'SF Pro Display', sans-serif;
+    src: url('fonts/SFProDisplay-Bold.woff2') format('woff2');
+    font-weight: bold;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Mea Culpa';
+    src: local('Mea Culpa Regular'), local('MeaCulpa-Regular'),
+        url('../fonts/MeaCulpa-Regular.woff2') format('woff2'),
+        url('../fonts/MeaCulpa-Regular.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: auto;
+}
+
+@font-face {
+    font-family: 'Mea Culpa';
+    src: local('Mea Culpa Regular'), local('MeaCulpa-Regular'),
+        url('../fonts/MeaCulpa-Regular.woff2') format('woff2'),
+        url('../fonts/MeaCulpa-Regular.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: auto;
+}
+
+body {
+    background-color: #3c2a34; /* Set background color */
+    padding-top: 54px !important;
+    margin-top: 0 !important;
+}
+
+#swf-container {
+    width: 100%;
+    max-width: 800px;
+    height: 600px;
+    border: 1px solid #f2b3c0;
+    margin: 20px auto;
+    background-color: #3c2a34;
+    position: relative;
+}
+.buttons {
+    text-align: center;
+    margin-bottom: 20px;
+}
+button {
+    margin: 5px;
+    padding: 10px 20px;
+    background-color: #f36a85;
+    border: 2px solid white; /* Add a solid white border */
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 5px;
+    font-family: 'SF Pro Display', sans-serif;
+    font-weight: bold;
+}
+
+#fullscreen-toggle {
+    display: block;
+    margin: 10px auto;
+}
+.footer-text {
+    position: absolute;
+    bottom: 10px;
+    width: 100%;
+    text-align: center;
+    font-size: 14px;
+    color: #f2b3c0;
+    font-family: 'SF Pro Display', sans-serif;
+    font-weight: bold;
+}
+.centered-line {
+    text-align: center;
+    margin-top: 20px;
+}
+.social-icon {
+    margin: 0 10px;
+    font-size: 24px;
+    color: #f36a85;
+    text-decoration: none;
+}
+h1, h2, h3, h4 {
+    font-family: "Montserrat", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 500;
+    font-style: normal;
+    text-align: center;
+    color: #f36a85; /* Set text color for h3 elements */
+}
+.textthatneedsthis {
+    color: #f36a85; /* Set text color for h3 elements */
+    text-shadow: 
+    -2px -2px 0 #f2b3c0,  /* Top-left */
+    0px -2px 0 #f2b3c0,   /* Top */
+    2px -2px 0 #f2b3c0,   /* Top-right */
+    -2px 0px 0 #f2b3c0,   /* Left */
+    2px 0px 0 #f2b3c0,    /* Right */
+    -2px 2px 0 #f2b3c0,   /* Bottom-left */
+    0px 2px 0 #f2b3c0,    /* Bottom */
+    2px 2px 0 #f2b3c0;    /* Bottom-right */
+}
+a {
+    color: #f36a85; /* Set link color */
+    text-decoration: none; /* Remove underline from links */
+}
+a:hover {
+    text-decoration: underline; /* Underline links on hover */
+}
+
+a.no-underline:hover {
+    text-decoration: none;
+}
+.outlined-text {
+    text-shadow: 
+        -1px -1px 0 #f2b3c0,  /* Top-left */
+        0px -1px 0 #f2b3c0,   /* Top */
+        1px -1px 0 #f2b3c0,   /* Top-right */
+        -1px 0px 0 #f2b3c0,   /* Left */
+        1px 0px 0 #f2b3c0,    /* Right */
+        -1px 1px 0 #f2b3c0,   /* Bottom-left */
+        0px 1px 0 #f2b3c0,    /* Bottom */
+        1px 1px 0 #f2b3c0;    /* Bottom-right */
+}
+.spacer {
+    color: #3c2a34; /* Match background color */
+  }
+
+.website-nav {
+  background-color: #3c2a34;
+  backdrop-filter: blur(20px);
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 9999;
+}
+
+.website-nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 10px 20px 0 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 44px;
+}
+
+.website-nav li {
+  margin: 0 20px;
+}
+
+.website-nav a {
+  text-decoration: none;
+  color: #f36a85;
+  font-size: 14px;
+  transition: opacity 0.2s;
+  font-family: "Montserrat", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 500;
+    font-style: normal;
+    text-align: center;
+}
+
+.website-nav a:hover {
+  opacity: 0.6;
+}
+
+/* Add hamburger button styles */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  cursor: pointer;
+  padding: 10px;
+  position: absolute;
+  right: 20px;
+  top: 22px;  /* Changed: Half of total nav height (44px + 10px padding = 54px / 2 = 27px, minus half button height) */
+}
+
+.hamburger span {
+  width: 25px;
+  height: 3px;
+  background-color: #f36a85;
+  margin: 3px 0;
+  transition: 0.3s;
+}
+
+@media (max-width: 768px) {
+  .hamburger {
+    display: flex;
+  }
+  
+  .website-nav ul {
+    position: fixed;
+    top: 54px;
+    left: calc(-4vw);
+    width: 100%;
+    background-color: #3c2a34;
+    flex-direction: column;
+    height: auto;
+    padding: 20px;
+    display: none;
+    margin: 0;
+    justify-content: center;
+  }
+  
+  .website-nav ul.active {
+    display: flex;
+  }
+  
+  .website-nav li {
+    margin: 10px 0;
+    text-align: center;
+  }
+}
+
+@media (max-width: 425px) {
+  .website-nav ul {
+    left: calc(-7vw);
+  }
+}
+
+@media (max-width: 320px) {
+  .website-nav ul {
+    left: calc(-9vw);
+  }
+}
