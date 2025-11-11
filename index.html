@@ -624,6 +624,22 @@
     }
 
     // refreshData and HTML generation can stay the same
+    async function refreshData() {
+      document.getElementById('predictions-container').innerHTML = '<div class="loading">Refreshing weather data...</div>';
+      logStep('refreshData -> initiated');
+    }
+      try {
+        const predictions = await getZonePredictions();
+        logStep('refreshData -> predictions received', predictions);
+        generateHTML(predictions);
+      } catch (error) {
+        console.error('Error fetching predictions:', error);
+      }
+    // Load data on page load
+    window.addEventListener('DOMContentLoaded', () => {
+      logStep('DOMContentLoaded -> starting refresh');
+      refreshData();
+    });
 
   </script>
 </body>
