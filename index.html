@@ -627,20 +627,28 @@
     async function refreshData() {
       document.getElementById('predictions-container').innerHTML = '<div class="loading">Refreshing weather data...</div>';
       logStep('refreshData -> initiated');
-    }
+
       try {
         const predictions = await getZonePredictions();
         logStep('refreshData -> predictions received', predictions);
         generateHTML(predictions);
       } catch (error) {
         console.error('Error fetching predictions:', error);
+        document.getElementById('predictions-container').innerHTML = `
+          <div class="error">
+            <h3>Error Loading Weather Data</h3>
+            <p>Unable to fetch weather information. Please try again later.</p>
+            <p style="font-size: 12px; margin-top: 10px;">Error: ${error.message}</p>
+          </div>
+        `;
       }
+    }
+
     // Load data on page load
     window.addEventListener('DOMContentLoaded', () => {
       logStep('DOMContentLoaded -> starting refresh');
       refreshData();
     });
-
   </script>
 </body>
 </html>
